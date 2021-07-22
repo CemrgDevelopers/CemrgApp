@@ -104,15 +104,16 @@ void AtrialScarClipperView::CreateQtPartControl(QWidget *parent) {
     txtActor->GetTextProperty()->SetColor(1.0, 1.0, 1.0);
     renderer->AddActor2D(txtActor);
 
-    vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-    m_Controls.widget_1->SetRenderWindow(renderWindow);
-    m_Controls.widget_1->GetRenderWindow()->AddRenderer(renderer);
+    vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
+            vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
+    m_Controls.widget_1->setRenderWindow(renderWindow);
+    m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
     //Setup keyboard interactor
     callBack = vtkSmartPointer<vtkCallbackCommand>::New();
     callBack->SetCallback(KeyCallBackFunc);
     callBack->SetClientData(this);
-    interactor = m_Controls.widget_1->GetRenderWindow()->GetInteractor();
+    interactor = m_Controls.widget_1->renderWindow()->GetInteractor();
     interactor->SetInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New());
     interactor->GetInteractorStyle()->KeyPressActivationOff();
     interactor->GetInteractorStyle()->AddObserver(vtkCommand::KeyPressEvent, callBack);
@@ -308,7 +309,7 @@ void AtrialScarClipperView::CtrLines() {
         renderer->AddActor(linesActor);
     }//_for
     // m_Controls.widget_1->GetVtkRenderWindow()->Render();
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 
     //Adjust controllers
     m_Controls.button_1->setEnabled(false);
@@ -376,7 +377,7 @@ void AtrialScarClipperView::CtrPlanes() {
             comboText = "APPENDAGE UNCUT";
         m_Controls.comboBox->insertItem(i, comboText);
     }//_for
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 
     //Adjust controllers
     m_Controls.comboBox->setCurrentIndex(0);
@@ -463,7 +464,7 @@ void AtrialScarClipperView::CtrPlanesPlacer() {
     clipper->CalcParamsOfPlane(ctrPlane, indexBox, position);
 
     ctrPlane->Update();
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialScarClipperView::CtrLinesSelector(int index) {
@@ -502,7 +503,7 @@ void AtrialScarClipperView::CtrLinesSelector(int index) {
     m_Controls.slider->setValue(position);
     m_Controls.spinBox->setValue(adjust);
     pickedCutterSeeds->SetPoints(vtkSmartPointer<vtkPoints>::New());
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialScarClipperView::Visualiser() {
@@ -561,7 +562,7 @@ void AtrialScarClipperView::PickCallBack() {
     double* point = surface->GetVtkPolyData()->GetPoint(pickedSeedId);
     pickedLineSeeds->GetPoints()->InsertNextPoint(point);
     pickedLineSeeds->Modified();
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialScarClipperView::ManualCutterCallBack() {
@@ -614,7 +615,7 @@ void AtrialScarClipperView::ManualCutterCallBack() {
     double* point = surface->GetVtkPolyData()->GetPoint(pickedSeedId);
     pickedCutterSeeds->GetPoints()->InsertNextPoint(point);
     pickedCutterSeeds->Modified();
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialScarClipperView::KeyCallBackFunc(vtkObject*, long unsigned int, void* ClientData, void*) {
@@ -716,7 +717,7 @@ void AtrialScarClipperView::KeyCallBackFunc(vtkObject*, long unsigned int, void*
                 self->pickedSeedLabels.pop_back();
             }//_if
 
-            self->m_Controls.widget_1->GetRenderWindow()->Render();
+            self->m_Controls.widget_1->renderWindow()->Render();
         }//_if_space
 
     } else if (self->clipper->GetCentreLinePolyPlanes().size() != 0 && !self->m_Controls.button_1->isEnabled() &&
@@ -814,7 +815,7 @@ void AtrialScarClipperView::KeyCallBackFunc(vtkObject*, long unsigned int, void*
                 for (unsigned int i = 0; i < self->clipperActors.size(); i++)
                     self->clipperActors.at(i)->GetProperty()->SetOpacity(1.0);
             }//_if
-            self->m_Controls.widget_1->GetRenderWindow()->Render();
+            self->m_Controls.widget_1->renderWindow()->Render();
 
         }//_if_key
 
