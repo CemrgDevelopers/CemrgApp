@@ -239,7 +239,7 @@ int main(int argc, char* argv[]) {
         int method;
         double value, thres, percentage;
         double data1[5];
-        ifstream prodFileRead;
+        std::ifstream prodFileRead;
         QString fileRead = prodPath + "prodThresholds.txt";
         prodFileRead.open(fileRead.toStdString());
 
@@ -262,7 +262,7 @@ int main(int argc, char* argv[]) {
 
         prodFileRead.close();
 
-        ofstream prodFile1;
+        std::ofstream prodFile1;
         prodFile1.open((prodPath + prothresfile).toStdString());
         prodFile1 << value << std::endl;
         prodFile1 << method << std::endl;

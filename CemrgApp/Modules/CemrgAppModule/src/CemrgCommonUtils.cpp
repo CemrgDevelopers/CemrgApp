@@ -760,7 +760,7 @@ bool CemrgCommonUtils::ConvertToCarto(
     outputPath = outputPath + "-carto.vtk";
 
     //File
-    ofstream cartoFile;
+    std::ofstream cartoFile;
     cartoFile.open(outputPath);
 
     //Header

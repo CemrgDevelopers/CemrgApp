@@ -1448,7 +1448,7 @@ void AtrialScarView::ScarMap() {
                      * Producibility Test
                      **/
                     QString prodPath = directory + "/";
-                    ofstream prodFile1;
+                    std::ofstream prodFile1;
                     prodFile1.open((prodPath + "prodScarMapInputs.txt").toStdString());
                     prodFile1 << minStep << "\n";
                     prodFile1 << maxStep << "\n";

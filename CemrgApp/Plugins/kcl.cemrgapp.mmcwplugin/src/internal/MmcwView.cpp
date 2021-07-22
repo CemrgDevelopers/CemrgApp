@@ -709,16 +709,45 @@ void MmcwView::Tracking() {
 
         QString aPath;
         if (time.isEmpty()) {
-            ofstream file;
+            std::ofstream file;
+            if (!para.isEmpty()) {
+                QFileInfo fi(para);
+                aPath = fi.absolutePath();
+            }
+            else {
+                //Absolute path
+                aPath = QCoreApplication::applicationDirPath() + "/MLib";
+            }
 
-            MITK_INFO << "[ATTENTION] Saving imgTimes.lst file to project directory.";
-            time = directory + "/imgTimes.lst";
-            file.open(time.toStdString(), ofstream::binary);
-            file << "dcm- .nii\n";
+            bool dcm_path_fix = true;
+            if (dcm_path_fix) {
+                MITK_INFO << "[ATTENTION] Saving imgTimes.lst file to project directory.";
+                time = directory + "/imgTimes.lst";
+                file.open(time.toStdString(), std::ofstream::binary);
+                file << "dcm- .nii\n";
+            }
+            else {
+                QDir apathd(aPath);
+                if (apathd.mkpath(aPath)) {
+                    // file.open(aPath.toStdString() + "/imgTimes.lst");
+                    QDir mainDirectory(directory);
+                    QString aRelativePath = mainDirectory.relativeFilePath(aPath);
+                    time = aPath + "/imgTimes.lst";
+                    file.open(time.toStdString(), std::ofstream::binary);
+                    if (aRelativePath==".")
+                        file << "dcm- .nii\n";
+                    else
+                        file << aRelativePath << "/dcm- .nii\n";
 
-            for (int i = 0; i < timePoints; i++) {
-                MITK_INFO << "File contents: " << i << " " << i * 10 << "\n";
-                file << i << " " << i * 10 << "\n";
+                } else {
+                    QMessageBox::warning(NULL, "Attention", "Error creating path:\n" + aPath);
+                    directory = QString();
+                    return;
+                }
+            }
+            for (int i=0; i<timePoints; i++) {
+                MITK_INFO << "File contents: " << i << " " << i*10 << "\n";
+                file << i << " " << i*10 << "\n";
             }
             file.close();
         }//_if
