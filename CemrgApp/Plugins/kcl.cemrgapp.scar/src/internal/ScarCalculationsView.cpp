@@ -1,4 +1,4 @@
-/*=========================================================================
+#/*=========================================================================
 
 Program:   Medical Imaging & Interaction Toolkit
 Language:  C++
@@ -257,7 +257,7 @@ void ScarCalculationsView::CreateQtPartControl(QWidget *parent) {
     renderer->SetBackground(0, 0, 0);
 
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
-            vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
+        vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
     m_Controls.widget_1->setRenderWindow(renderWindow);
     m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 

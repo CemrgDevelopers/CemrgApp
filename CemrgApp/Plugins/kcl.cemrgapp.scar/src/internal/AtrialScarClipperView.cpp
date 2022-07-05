@@ -104,8 +104,7 @@ void AtrialScarClipperView::CreateQtPartControl(QWidget *parent) {
     txtActor->GetTextProperty()->SetColor(1.0, 1.0, 1.0);
     renderer->AddActor2D(txtActor);
 
-    vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
-            vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
+    vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
     m_Controls.widget_1->setRenderWindow(renderWindow);
     m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
