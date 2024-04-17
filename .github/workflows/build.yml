@@ -24,9 +24,10 @@ jobs:
     needs: [Variables, Build-Linux, Build-macOS]
     steps:
     - name: Download packages
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
-        name: Packages
+        pattern: Packages-*
+        merge-multiple: true
 
     - name: Upload Linux package
       uses: actions/upload-release-asset@v1.0.2
@@ -128,9 +129,9 @@ jobs:
         mv CemrgApp-Linux.zip ${{ github.workspace }}/
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Packages
+        name: Packages-Linux
         path: CemrgApp-Linux.zip
 
 
@@ -209,9 +210,9 @@ jobs:
   #       move CemrgApp-Windows.zip ${{ github.workspace }}\
   #
   #   - name: Upload package
-  #     uses: actions/upload-artifact@v2
+  #     uses: actions/upload-artifact@v4
   #     with:
-  #       name: Packages
+  #       name: Packages-Windows
   #       path: CemrgApp-Windows.zip
 
 
@@ -313,7 +314,7 @@ jobs:
         hdiutil create -volname CemrgApp -srcfolder /Users/Shared/CemrgApp-macOS -ov -format UDZO ${{ github.workspace }}/CemrgApp-macOS.dmg
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Packages
+        name: Packages-macOS
         path: CemrgApp-macOS.dmg
