@@ -52,8 +52,8 @@ jobs:
     - name: Build
       working-directory: /Build
       env:
-        CC: gcc-6
-        CXX: g++-6
+        CC: gcc
+        CXX: g++
       run: make -j4
 
     - name: Test
