@@ -23,7 +23,7 @@ jobs:
     - name: Install missing packages
       run: |
         sudo apt update
-        sudo DEBIAN_FRONTEND=noninteractive apt install libxt-dev libtiff5-dev libfontconfig1 mesa-common-dev libglu1-mesa-dev libxcomposite1 libxcursor1 libxrender1 libxi6 libxtst6 libasound2 libnspr4 libnss3 libxkbcommon-dev libxkbcommon-x11-dev libtbb2 doxygen git cmake python3-pip gcc-6 g++-6 -y
+        sudo DEBIAN_FRONTEND=noninteractive apt install libxt-dev libtiff5-dev libfontconfig1 mesa-common-dev libglu1-mesa-dev libxcomposite1 libxcursor1 libxrender1 libxi6 libxtst6 libasound2 libnspr4 libnss3 libxkbcommon-dev libxkbcommon-x11-dev libtbb2 doxygen git cmake python3-pip gcc g++ -y
         sudo apt remove --auto-remove icu-devtools libicu-dev -y
     
     - name: Install Qt
