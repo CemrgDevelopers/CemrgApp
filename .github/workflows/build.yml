@@ -60,7 +60,7 @@ jobs:
 
 
   Build-Linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: [Variables]
     steps:
     - name: Download precompiled Build folder
@@ -216,7 +216,7 @@ jobs:
 
 
   Build-macOS:
-    runs-on: macos-10.15
+    runs-on: macos-12
     needs: [Variables]
     steps:
     - name: Download precompiled Build folder
