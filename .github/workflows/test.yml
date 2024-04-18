@@ -23,7 +23,7 @@ jobs:
     - name: Install missing packages
       run: |
         sudo apt update
-        sudo DEBIAN_FRONTEND=noninteractive apt install libxt-dev libtiff5-dev libfontconfig1 mesa-common-dev libglu1-mesa-dev libxcomposite1 libxcursor1 libxrender1 libxi6 libxtst6 libasound2 libnspr4 libnss3 libxkbcommon-dev libxkbcommon-x11-dev libtbb2 doxygen git cmake python3-pip gcc-6 g++-6 -y
+        sudo DEBIAN_FRONTEND=noninteractive apt install libxt-dev libtiff5-dev libfontconfig1 mesa-common-dev libglu1-mesa-dev libxcomposite1 libxcursor1 libxrender1 libxi6 libxtst6 libasound2 libnspr4 libnss3 libxkbcommon-dev libxkbcommon-x11-dev libtbb2 doxygen git cmake python3-pip gcc g++ -y
         sudo apt remove --auto-remove icu-devtools libicu-dev -y
     
     - name: Install Qt
@@ -42,7 +42,7 @@ jobs:
       run: sudo find /MITK/ -exec touch -a -m -d 20210401 {} \;
 
     - name: Clone CemrgApp
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: CemrgApp
 
@@ -52,8 +52,8 @@ jobs:
     - name: Build
       working-directory: /Build
       env:
-        CC: gcc-6
-        CXX: g++-6
+        CC: gcc
+        CXX: g++
       run: make -j4
 
     - name: Test
@@ -64,10 +64,9 @@ jobs:
       run: ctest -R Cemrg -V
 
     - name: Code Coverage
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        functionalities: coveragepy
         root_dir: /CemrgApp/
-        gcov_root_dir: /Build/MITK-build
         directory: ${{ github.workspace }}
+        plugin: gcov

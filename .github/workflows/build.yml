@@ -24,9 +24,10 @@ jobs:
     needs: [Variables, Build-Linux, Build-macOS]
     steps:
     - name: Download packages
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
-        name: Packages
+        pattern: Packages-*
+        merge-multiple: true
 
     - name: Upload Linux package
       uses: actions/upload-release-asset@v1.0.2
@@ -80,7 +81,7 @@ jobs:
     - name: Install missing packages
       run: |
         sudo apt update
-        sudo DEBIAN_FRONTEND=noninteractive apt install libxt-dev libtiff5-dev libfontconfig1 mesa-common-dev libglu1-mesa-dev libxcomposite1 libxcursor1 libxrender1 libxi6 libxtst6 libasound2 libnspr4 libnss3 libxkbcommon-dev libxkbcommon-x11-dev doxygen git cmake python3-pip gcc-6 g++-6 -y
+        sudo DEBIAN_FRONTEND=noninteractive apt install libxt-dev libtiff5-dev libfontconfig1 mesa-common-dev libglu1-mesa-dev libxcomposite1 libxcursor1 libxrender1 libxi6 libxtst6 libasound2 libnspr4 libnss3 libxkbcommon-dev libxkbcommon-x11-dev doxygen git cmake python3-pip gcc g++ -y
         sudo apt remove --auto-remove icu-devtools libicu-dev -y
 
     - name: Install Qt
@@ -96,7 +97,7 @@ jobs:
       run: sudo find /MITK/ -exec touch -a -m -d 20210401 {} \;
 
     - name: Clone CemrgApp
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: CemrgApp
 
@@ -128,9 +129,9 @@ jobs:
         mv CemrgApp-Linux.zip ${{ github.workspace }}/
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Packages
+        name: Packages-Linux
         path: CemrgApp-Linux.zip
 
 
@@ -170,7 +171,7 @@ jobs:
   #     run: dir -R c:\MITK | foreach { $_.LastWriteTime = [DateTime]::ParseExact('01-04-21', 'dd-MM-yy', $null) }
   #
   #   - name: Clone CemrgApp
-  #     uses: actions/checkout@v2
+  #     uses: actions/checkout@v4
   #     with:
   #       path: CemrgApp
   #
@@ -209,9 +210,9 @@ jobs:
   #       move CemrgApp-Windows.zip ${{ github.workspace }}\
   #
   #   - name: Upload package
-  #     uses: actions/upload-artifact@v2
+  #     uses: actions/upload-artifact@v4
   #     with:
-  #       name: Packages
+  #       name: Packages-Windows
   #       path: CemrgApp-Windows.zip
 
 
@@ -263,7 +264,7 @@ jobs:
       run: find /Users/Shared/MITK/ -exec touch -a -m -t 202104010000 {} \;
 
     - name: Clone CemrgApp
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: CemrgApp
 
@@ -313,7 +314,7 @@ jobs:
         hdiutil create -volname CemrgApp -srcfolder /Users/Shared/CemrgApp-macOS -ov -format UDZO ${{ github.workspace }}/CemrgApp-macOS.dmg
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Packages
+        name: Packages-macOS
         path: CemrgApp-macOS.dmg
