@@ -36,10 +36,10 @@ jobs:
     needs: [Variables, Build-Linux, Build-Windows, Build-macOS]
     steps:
     - name: Download packages
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
-        name: Packages
-
+        pattern: Packages-*
+        merge-multiple: true
 
     - name: Upload Linux package
       uses: actions/upload-release-asset@v1.0.2
@@ -109,7 +109,7 @@ jobs:
       run: sudo find /MITK/ -exec touch -a -m -d 20210401 {} \;
 
     - name: Clone CemrgApp
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: CemrgApp
 
@@ -141,9 +141,9 @@ jobs:
         mv CemrgApp-Linux.zip ${{ github.workspace }}/
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Packages
+        name: Packages-Linux
         path: CemrgApp-Linux.zip
 
 
@@ -183,7 +183,7 @@ jobs:
       run: dir -R c:\MITK | foreach { $_.LastWriteTime = [DateTime]::ParseExact('01-04-21', 'dd-MM-yy', $null) }
 
     - name: Clone CemrgApp
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: CemrgApp
 
@@ -223,9 +223,9 @@ jobs:
         move CemrgApp-Windows.zip ${{ github.workspace }}\
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Packages
+        name: Packages-Windows
         path: CemrgApp-Windows.zip
 
 
@@ -264,7 +264,7 @@ jobs:
       run: find /Users/Shared/MITK/ -exec touch -a -m -t 202104010000 {} \;
 
     - name: Clone CemrgApp
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: CemrgApp
 
@@ -303,7 +303,7 @@ jobs:
         hdiutil create -volname CemrgApp -srcfolder /Users/Shared/CemrgApp-macOS -ov -format UDZO ${{ github.workspace }}/CemrgApp-macOS.dmg
 
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
-        name: Packages
+        name: Packages-macOS
         path: CemrgApp-macOS.dmg
