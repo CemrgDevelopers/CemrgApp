@@ -35,7 +35,7 @@ jobs:
         sudo aqt install --outputdir /Qt 5.12.10 linux desktop -m qtcharts qtnetworkauth qtpurchasing qtdatavis3d qtscript qtvirtualkeyboard qtwebengine qtwebglplugin
     
     - name: Clone MITK
-      run: sudo git clone --branch v2021.02 https://phabricator.mitk.org/source/mitk.git /MITK
+      run: sudo git clone --branch v2022.10 https://phabricator.mitk.org/source/mitk.git /MITK
 
     - name: Disable tests for CppMicroServices
       run: sudo sed -i 's/set(US_BUILD_TESTING ON)/set(US_BUILD_TESTING OFF)/' /MITK/Modules/CMakeLists.txt
