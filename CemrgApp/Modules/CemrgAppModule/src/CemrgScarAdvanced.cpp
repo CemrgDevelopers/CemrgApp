@@ -210,7 +210,6 @@ std::string CemrgScarAdvanced::num2str(double num, int precision) {
 void CemrgScarAdvanced::SaveStrToFile(std::string path2file, std::string filename, std::string text) {
     MITK_INFO << "[AdvancedScar] Saving to file: " + path2file + filename;
     std::ofstream outst;
-    std::ofstream outst;
     std::stringstream ss;
 
     ss << (path2file + filename);
