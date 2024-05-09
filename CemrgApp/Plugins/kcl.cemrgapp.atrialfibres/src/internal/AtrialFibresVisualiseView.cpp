@@ -162,7 +162,6 @@ void AtrialFibresVisualiseView::LoadFibreFile(){
     MITK_INFO << ("Fibres read. Number of fibres: " + QString::number(vectorField.size())).toStdString();
 
     // rearrange vectorfield into vtkFlostArray fibres
-    vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
     vtkSmartPointer<vtkFloatArray> fibres = vtkSmartPointer<vtkFloatArray>::New();
     fibres->SetNumberOfComponents(3);
     fibres->SetNumberOfTuples(vectorField.size());
@@ -186,7 +185,7 @@ void AtrialFibresVisualiseView::LoadFibreFile(){
 
     vtkNew<vtkActor> fibresActor;
     fibresActor->SetMapper(fibresMapper);
-    fibresActor->GetProperty()->SetColor(colors->GetColor3d("Gold").GetData());
+    fibresActor->GetProperty()->SetColor(255, 215, 0); // RGB value of Gold, see https://www.w3.org/TR/css-color-3/#svg-color
 
     renderer->AddActor(fibresActor);
 }
