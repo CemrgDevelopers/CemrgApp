@@ -200,7 +200,7 @@ void AtrialFibresLandmarksView::SaveRoughPoints(){
     MITK_INFO << "[SaveRoughPoints] Saving rough points to file.";
     QString prodPath = directory + "/";
     QString outname = (isLeftAtrium) ? "prodLaRoughLandmarks" : "prodRaLandmarks";
-    ofstream fileRough, fileRoughLabels;
+    std::ofstream fileRough, fileRoughLabels;
 
     MITK_INFO << "[SaveRoughPoints] Saving TXT file.";
     fileRough.open((prodPath + outname + ".txt").toStdString());
@@ -244,8 +244,7 @@ void AtrialFibresLandmarksView::SaveRefinedPoints(){
     MITK_INFO << "[SaveRefinedPoints] Saving refined points to file.";
     QString prodPath = directory + "/";
     QString outname = (isLeftAtrium) ? "prodLaRefinedLandmarks" : "prodRaRegion";
-    ofstream fileRefined;
-    ofstream fileRough, fileRefinedLabels;
+    std::ofstream fileRefined, fileRough, fileRefinedLabels;
 
     MITK_INFO << "[SaveRefinedPoints] Saving TXT file.";
     fileRefined.open((prodPath + outname + ".txt").toStdString());

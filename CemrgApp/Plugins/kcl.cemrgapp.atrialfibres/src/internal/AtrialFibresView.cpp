@@ -74,7 +74,6 @@ PURPOSE.  See the above copyright notices for more information.
 #include <vtkWindowedSincPolyDataFilter.h>
 #include <vtkImplicitPolyDataDistance.h>
 #include <vtkBooleanOperationPolyDataFilter.h>
-#include <vtkTimerLog.h>
 #include <vtkClipPolyData.h>
 #include <vtkDecimatePro.h>
 

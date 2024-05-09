@@ -523,7 +523,7 @@ void AtrialFibresClipperView::SaveLabels(){
     QString prodPath = directory + "/";
     std::vector<int> ignoredIds;
     int ignored=0, discarded=0;
-    ofstream fileLabels, fileIds, fileLabelInShell, fileIgnoreIds, fileDiscardIds;
+    std::ofstream fileLabels, fileIds, fileLabelInShell, fileIgnoreIds, fileDiscardIds;
 
     fileLabels.open((prodPath + "prodSeedLabels.txt").toStdString());
     fileIds.open((prodPath + "prodSeedIds.txt").toStdString());

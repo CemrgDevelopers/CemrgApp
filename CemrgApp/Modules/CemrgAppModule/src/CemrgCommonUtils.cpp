@@ -109,7 +109,7 @@ mitk::Image::Pointer CemrgCommonUtils::CropImage() {
 
     //Test input objects
     if (imageToCut.IsNull() || cuttingCube.IsNull()) {
-        return NULL;
+        return nullptr;
     }
 
     //Prepare the cutter
@@ -126,7 +126,7 @@ mitk::Image::Pointer CemrgCommonUtils::CropImage() {
         QMessageBox::warning(
             NULL, "Cropping not possible!", message.c_str(),
             QMessageBox::Ok, QMessageBox::NoButton, QMessageBox::NoButton);
-        return NULL;
+        return nullptr;
     }//try
 
     //Cutting successful
