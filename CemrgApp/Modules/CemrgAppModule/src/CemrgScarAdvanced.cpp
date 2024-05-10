@@ -465,7 +465,7 @@ void CemrgScarAdvanced::ExtractCorridorData(
     p2c->Update();
 
     vtkSmartPointer<vtkThreshold> threshold = vtkSmartPointer<vtkThreshold>::New();
-    threshold->SetThresholdFunction(vtkThreshold::Upper);
+    threshold->SetThresholdFunction(vtkThreshold::THRESHOLD_UPPER);
     threshold->SetUpperThreshold(_fill_threshold);
     threshold->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
     threshold->SetInputData(p2c->GetPolyDataOutput());
@@ -523,9 +523,9 @@ void CemrgScarAdvanced::NeighbourhoodFillingPercentage(std::vector<int> points) 
     double fillingcounter = 0;
     double total = points.size();
 
-    // bring al lthe scalars to an array
+    // bring all the scalars to an array
     vtkFloatArray* scalars = vtkFloatArray::SafeDownCast(_SourcePolyData->GetPointData()->GetScalars());
-    MITK_INFO << ("[INFO] Exploring the predeteremined neighbourhood at threshold = " +
+    MITK_INFO << ("[INFO] Exploring the predetermined neighbourhood at threshold = " +
         QString::number(_fill_threshold)).toStdString();
     MITK_INFO << ("[INFO] Number of points: " + QString::number(total)).toStdString();
     for (unsigned int i = 0; i < points.size(); i++) {
