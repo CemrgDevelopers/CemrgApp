@@ -139,14 +139,14 @@ void AtrialFibresLandmarksView::CreateQtPartControl(QWidget *parent) {
 
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
             vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-    m_Controls.widget_1->SetRenderWindow(renderWindow);
-    m_Controls.widget_1->GetRenderWindow()->AddRenderer(renderer);
+    m_Controls.widget_1->setRenderWindow(renderWindow);
+    m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
     //Setup keyboard interactor
     callBack = vtkSmartPointer<vtkCallbackCommand>::New();
     callBack->SetCallback(KeyCallBackFunc);
     callBack->SetClientData(this);
-    interactor = m_Controls.widget_1->GetRenderWindow()->GetInteractor();
+    interactor = m_Controls.widget_1->renderWindow()->GetInteractor();
     interactor->SetInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New());
     interactor->GetInteractorStyle()->KeyPressActivationOff();
     interactor->GetInteractorStyle()->AddObserver(vtkCommand::KeyPressEvent, callBack);
@@ -414,7 +414,7 @@ void AtrialFibresLandmarksView::PickCallBack(bool refinedLandmarks) {
         refinedLineSeeds->Modified();
     }
 
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialFibresLandmarksView::KeyCallBackFunc(vtkObject*, long unsigned int, void* ClientData, void*) {
@@ -475,7 +475,7 @@ void AtrialFibresLandmarksView::KeyCallBackFunc(vtkObject*, long unsigned int, v
             self->roughSeedLabels.pop_back();
         }//_if
 
-        self->m_Controls.widget_1->GetRenderWindow()->Render();
+        self->m_Controls.widget_1->renderWindow()->Render();
     } else if (key == "X" || key == "x"){
         if(self->m_Controls.button_save2_refined->isEnabled()){
             bool refinedLandmarks = true;
@@ -530,7 +530,7 @@ void AtrialFibresLandmarksView::KeyCallBackFunc(vtkObject*, long unsigned int, v
                 self->refinedSeedLabels.pop_back();
             }//_if
 
-            self->m_Controls.widget_1->GetRenderWindow()->Render();
+            self->m_Controls.widget_1->renderWindow()->Render();
         }
     } else if (key == "H" || key == "h"){
         self->Help();
