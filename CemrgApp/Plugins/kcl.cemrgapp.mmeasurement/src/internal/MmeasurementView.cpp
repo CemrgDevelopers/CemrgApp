@@ -529,7 +529,7 @@ void MmeasurementView::Tracking() {
     }//_if
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     QSignalMapper* signalMapper = new QSignalMapper(this);
 
     m_UITracking.setupUi(inputs);
@@ -627,7 +627,7 @@ void MmeasurementView::Applying() {
             rr->Convert(directory, node);
 
             //Ask for user input to set the parameters
-            QDialog* inputs = new QDialog(0, 0);
+            QDialog* inputs = new QDialog(0, Qt::WindowFlags());
             QSignalMapper* signalMapper = new QSignalMapper(this);
 
             m_UIApplying.setupUi(inputs);

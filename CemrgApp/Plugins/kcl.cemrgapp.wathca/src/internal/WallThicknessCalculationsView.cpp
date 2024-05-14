@@ -554,7 +554,7 @@ void WallThicknessCalculationsView::MorphologyAnalysis() {
             mitk::Image::Pointer bp = mitk::IOUtil::Load<mitk::Image>(directory.toStdString() + "/PVeinsCroppedImage.nii");
 
             //Ask for user input to set the parameters
-            QDialog* inputs = new QDialog(0,0);
+            QDialog* inputs = new QDialog(0, Qt::WindowFlags());
             m_UIMeshing.setupUi(inputs);
             connect(m_UIMeshing.buttonBox, &QDialogButtonBox::accepted, inputs, &QDialog::accept);
             connect(m_UIMeshing.buttonBox, &QDialogButtonBox::rejected, inputs, &QDialog::reject);
@@ -822,7 +822,7 @@ void WallThicknessCalculationsView::ThicknessCalculator() {
                 myFile.close();
 
                 //Ask for user input to set the parameters
-                QDialog* inputs = new QDialog(0,0);
+                QDialog* inputs = new QDialog(0, Qt::WindowFlags());
                 m_Thickness.setupUi(inputs);
                 connect(m_Thickness.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
                 connect(m_Thickness.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));

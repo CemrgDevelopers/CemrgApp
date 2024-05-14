@@ -61,7 +61,7 @@ CemrgCommandLine::CemrgCommandLine() {
 
     //Setup dialog
     layout = new QVBoxLayout();
-    dial = new QDialog(0,0);
+    dial = new QDialog(0, Qt::WindowFlags());
     dial->setFixedSize(640, 480);
     dial->setLayout(layout);
     dial->layout()->addWidget(panel);

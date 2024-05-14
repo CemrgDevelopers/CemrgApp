@@ -84,7 +84,7 @@ QString ScarCalculationsView::postScarFile;
 const std::string ScarCalculationsView::VIEW_ID = "org.mitk.views.scarcalculations";
 
 ScarCalculationsView::ScarCalculationsView() {
-    this->inputs = new QDialog(0, 0);
+    this->inputs = new QDialog(0, Qt::WindowFlags());
     this->method = -1;
     this->value = -1;
     this->mean = -1;
@@ -863,7 +863,7 @@ void ScarCalculationsView::GapMeasurement() {
 
         MITK_INFO << "Creating shortest path and corridor.";
         // Choose parameters: neighbourhood size, left/right prefix
-        QDialog* inputs = new QDialog(0, 0);
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
         m_UICorridor.setupUi(inputs);
         connect(m_UICorridor.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
         connect(m_UICorridor.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));

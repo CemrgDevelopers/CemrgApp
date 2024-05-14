@@ -80,7 +80,8 @@ PURPOSE.  See the above copyright notices for more information.
 
 // Qt
 #include <QMessageBox>
-#include <QDesktopWidget>
+#include <QGuiApplication>
+#include <QScreen>
 
 // CemrgAppModule
 #include <CemrgAtriaClipper.h>
@@ -109,12 +110,12 @@ void AtrialFibresLandmarksView::CreateQtPartControl(QWidget *parent) {
     }
 
     //Create GUI widgets
-    inputsRough = new QDialog(0,0);
+    inputsRough = new QDialog(0, Qt::WindowFlags());
     m_Rough.setupUi(inputsRough);
     connect(m_Rough.buttonBox, SIGNAL(accepted()), inputsRough, SLOT(accept()));
     connect(m_Rough.buttonBox, SIGNAL(rejected()), inputsRough, SLOT(reject()));
 
-    inputsRefined = new QDialog(0,0);
+    inputsRefined = new QDialog(0, Qt::WindowFlags());
     m_Refined.setupUi(inputsRefined);
     connect(m_Refined.buttonBox, SIGNAL(accepted()), inputsRefined, SLOT(accept()));
     connect(m_Refined.buttonBox, SIGNAL(rejected()), inputsRefined, SLOT(reject()));
@@ -622,7 +623,7 @@ void AtrialFibresLandmarksView::UserSelectPvLabel(bool refinedLandmarks){
 
 void AtrialFibresLandmarksView::UserSelectPvRoughLabel(){
     int dialogCode = inputsRough->exec();
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - inputsRough->width()) / 2;
     int y = (screenGeometry.height() - inputsRough->height()) / 2;
     inputsRough->move(x,y);
@@ -679,7 +680,7 @@ void AtrialFibresLandmarksView::UserSelectPvRoughLabel(){
 
 void AtrialFibresLandmarksView::UserSelectPvRefinedLabel(){
     int dialogCode = inputsRefined->exec();
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - inputsRefined->width()) / 2;
     int y = (screenGeometry.height() - inputsRefined->height()) / 2;
     inputsRefined->move(x,y);

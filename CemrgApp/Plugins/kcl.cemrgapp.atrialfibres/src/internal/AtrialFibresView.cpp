@@ -1683,7 +1683,7 @@ bool AtrialFibresView::RequestProjectDirectoryFromUser() {
 }
 
 bool AtrialFibresView::GetUserConvertFormatInputs(QString inname, QString inext, bool cleanmesh){
-    QDialog* inputs = new QDialog(0,0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     bool userInputAccepted=false;
     m_UIFormat.setupUi(inputs);
     connect(m_UIFormat.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
@@ -1748,7 +1748,7 @@ bool AtrialFibresView::GetUserUacOptionsInputs(bool enableFullUiOptions){
     }
 
     if(!userInputAccepted){
-        QDialog* inputs = new QDialog(0,0);
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
         m_UIUac.setupUi(inputs);
         connect(m_UIUac.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
         connect(m_UIUac.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -1792,7 +1792,7 @@ bool AtrialFibresView::GetUserEditLabelsInputs(){
     bool userInputAccepted=false;
 
     if(!userInputAccepted){
-        QDialog* inputs = new QDialog(0,0);
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
         m_UIEditLabels.setupUi(inputs);
         connect(m_UIEditLabels.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
         connect(m_UIEditLabels.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -1873,7 +1873,7 @@ bool AtrialFibresView::GetUserEditLabelsInputs(){
 }
 
 bool AtrialFibresView::GetUserRemeshingInputs(){
-    QDialog* inputs = new QDialog(0,0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     bool userInputAccepted=false;
     m_UIRemesh.setupUi(inputs);
     connect(m_UIRemesh.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
@@ -1948,7 +1948,7 @@ bool AtrialFibresView::GetUserAnalysisSelectorInputs(){
     }
 
     if(!userInputAccepted){
-        QDialog* inputs = new QDialog(0,0);
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
         m_UISelector.setupUi(inputs);
         connect(m_UISelector.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
         connect(m_UISelector.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -2008,7 +2008,7 @@ bool AtrialFibresView::GetUserMeshingInputs(){
             userInputAccepted=true;
         }
     } else{
-        QDialog* inputs = new QDialog(0,0);
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
         m_UIMeshing.setupUi(inputs);
         connect(m_UIMeshing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
         connect(m_UIMeshing.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -2047,7 +2047,7 @@ bool AtrialFibresView::GetUserMeshingInputs(){
 bool AtrialFibresView::GetUserScarProjectionInputs(){
     bool userInputAccepted=false;
 
-    QDialog* inputs = new QDialog(0,0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     m_UIcemrgnet.setupUi(inputs);
     connect(m_UIcemrgnet.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_UIcemrgnet.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -2103,7 +2103,7 @@ bool AtrialFibresView::GetUserScarProjectionInputs(){
             MITK_INFO << "[UI] Creating list of thresholds";
             separated_thresh_list.removeLast();
             separated_thresh_list.removeLast();
-            separated_thresh_list = thresh_list.split("," , QString::SkipEmptyParts);
+            separated_thresh_list = thresh_list.split(",", Qt::SkipEmptyParts);
             int listspaces = separated_thresh_list.removeAll(" ");
             int listduplicates = separated_thresh_list.removeDuplicates();
             std::cout << "Spaces in list: " << listspaces << " Duplicates in list: " << listduplicates << '\n';

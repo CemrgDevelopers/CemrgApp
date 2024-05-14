@@ -452,7 +452,7 @@ void EASIView::CreateMesh() {
                 myFile.close();
 
                 //Ask for user input to set the parameters
-                QDialog* inputs = new QDialog(0, 0);
+                QDialog *inputs = new QDialog(0, Qt::WindowFlags());
 
                 m_UIMeshing.setupUi(inputs);
                 connect(m_UIMeshing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));

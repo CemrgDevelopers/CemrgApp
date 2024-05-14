@@ -83,8 +83,9 @@ PURPOSE.  See the above copyright notices for more information.
 
 // Qt
 #include <QMessageBox>
-#include <QDesktopWidget>
 #include <QFile>
+#include <QGuiApplication>
+#include <QScreen>
 
 // CemrgAppModule
 #include <CemrgAtriaClipper.h>
@@ -125,7 +126,7 @@ void AtrialFibresClipperView::CreateQtPartControl(QWidget *parent) {
     defaultClipperRadius = 9.0;
 
     MITK_INFO <<"Create GUI widgets";
-    inputs = new QDialog(0,0);
+    inputs = new QDialog(0, Qt::WindowFlags());
     m_Labels.setupUi(inputs);
     connect(m_Labels.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_Labels.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -714,7 +715,7 @@ void AtrialFibresClipperView::InterPvSpacing(){
 
 int AtrialFibresClipperView::GetUserFixMeshingLabel(){
     // returns the label to fix in the corridor (or -1 to cancel)
-    QDialog* inputs = new QDialog(0,0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     m_UICorridor.setupUi(inputs);
     connect(m_UICorridor.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_UICorridor.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -1350,7 +1351,7 @@ void AtrialFibresClipperView::SetAutomaticModeButtons(bool b){
 
 void AtrialFibresClipperView::UserSelectPvLabel(){
     int dialogCode = inputs->exec();
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - inputs->width()) / 2;
     int y = (screenGeometry.height() - inputs->height()) / 2;
     inputs->move(x,y);

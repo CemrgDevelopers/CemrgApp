@@ -73,7 +73,8 @@ PURPOSE.  See the above copyright notices for more information.
 
 // Qt
 #include <QMessageBox>
-#include <QDesktopWidget>
+#include <QGuiApplication>
+#include <QScreen>
 
 // CemrgAppModule
 #include <CemrgAtriaClipper.h>
@@ -84,7 +85,7 @@ QString WallThicknessCalculationsClipperView::directory;
 const std::string WallThicknessCalculationsClipperView::VIEW_ID = "org.mitk.views.wathcaclipperview";
 
 WallThicknessCalculationsClipperView::WallThicknessCalculationsClipperView() {
-    this->inputs = new QDialog(0, 0);
+    this->inputs = new QDialog(0, Qt::WindowFlags());
 }
 
 void WallThicknessCalculationsClipperView::CreateQtPartControl(QWidget *parent) {
@@ -99,7 +100,7 @@ void WallThicknessCalculationsClipperView::CreateQtPartControl(QWidget *parent) 
     connect(m_Controls.comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(CtrLinesSelector(int)));
 
     //Create GUI widgets
-    inputs = new QDialog(0, 0);
+    inputs = new QDialog(0, Qt::WindowFlags());
     m_Labels.setupUi(inputs);
     connect(m_Labels.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_Labels.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -189,7 +190,7 @@ void WallThicknessCalculationsClipperView::iniPreSurf() {
             }//_if
 
             //Ask for user input to set the parameters
-            QDialog* inputs = new QDialog(0, 0);
+            QDialog* inputs = new QDialog(0, Qt::WindowFlags());
             m_UIMeshing.setupUi(inputs);
             connect(m_UIMeshing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
             connect(m_UIMeshing.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -670,7 +671,7 @@ void WallThicknessCalculationsClipperView::KeyCallBackFunc(vtkObject*, long unsi
             //Ask the labels
             self->PickCallBack();
             int dialogCode = self->inputs->exec();
-            QRect screenGeometry = QApplication::desktop()->screenGeometry();
+            QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
             int x = (screenGeometry.width() - self->inputs->width()) / 2;
             int y = (screenGeometry.height() - self->inputs->height()) / 2;
             self->inputs->move(x, y);
