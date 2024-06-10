@@ -87,7 +87,7 @@ void QmitkCemrgAppCommonTools::ConvertToCarto() {
     if (fullPathInfo.dir().exists("prodThresholds.txt")) {
         //Threshold file
         QString tPath = fullPathInfo.absolutePath() + "/prodThresholds.txt";
-        ifstream prodFileRead(tPath.toStdString());
+        std::ifstream prodFileRead(tPath.toStdString());
         if (prodFileRead.is_open()) {
 
             std::string line;
@@ -103,7 +103,7 @@ void QmitkCemrgAppCommonTools::ConvertToCarto() {
     }//_if
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog *inputs = new QDialog(0, Qt::WindowFlags());
     m_CartoUIThresholding.setupUi(inputs);
     connect(m_CartoUIThresholding.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_CartoUIThresholding.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -262,7 +262,7 @@ void QmitkCemrgAppCommonTools::PadImageEdgesWithConstant(){
     }
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0,0);
+    QDialog *inputs = new QDialog(0, Qt::WindowFlags());
     m_ImagePadding.setupUi(inputs);
     connect(m_ImagePadding.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_ImagePadding.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));

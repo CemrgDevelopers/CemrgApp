@@ -113,8 +113,9 @@ void MmeasurementView::OnSelectionChanged(berry::IWorkbenchPart::Pointer /*sourc
 }
 
 void MmeasurementView::LoadDICOM() {
-    // Use MITK DICOM editor
-    QString editor_id = "org.mitk.editors.dicomeditor";
+
+    //Use MITK DICOM browser
+    QString editor_id = "org.mitk.editors.dicombrowser";
     berry::IEditorInput::Pointer input(new berry::FileEditorInput(QString()));
     this->GetSite()->GetPage()->OpenEditor(input, editor_id);
 }
@@ -528,7 +529,7 @@ void MmeasurementView::Tracking() {
     }//_if
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     QSignalMapper* signalMapper = new QSignalMapper(this);
 
     m_UITracking.setupUi(inputs);
@@ -553,7 +554,7 @@ void MmeasurementView::Tracking() {
             QMessageBox::warning(NULL, "Attention", "Reverting to default time or parameter file!");
 
         if (time.isEmpty()) {
-            ofstream file;
+            std::ofstream file;
             //Absolute path
             QString aPath = QCoreApplication::applicationDirPath() + "/MLib";
             file.open(aPath.toStdString() + "/imgTimes.lst");
@@ -626,7 +627,7 @@ void MmeasurementView::Applying() {
             rr->Convert(directory, node);
 
             //Ask for user input to set the parameters
-            QDialog* inputs = new QDialog(0, 0);
+            QDialog* inputs = new QDialog(0, Qt::WindowFlags());
             QSignalMapper* signalMapper = new QSignalMapper(this);
 
             m_UIApplying.setupUi(inputs);
@@ -711,7 +712,7 @@ void MmeasurementView::WriteFileButton() {
         fileName = QInputDialog::getText(NULL, tr("Save As"), tr("File Name:"), QLineEdit::Normal, fileName, &ok);
         if (ok && !fileName.isEmpty() && fileName.endsWith(".csv")) {
 
-            ofstream file;
+            std::ofstream file;
             file.open(directory.toStdString() + "/" + fileName.toStdString());
             std::vector<double> values;
             for (int i = 0; i < timePoints * smoothness; i++)

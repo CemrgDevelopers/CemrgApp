@@ -130,8 +130,8 @@ void powertransView::OnSelectionChanged(
 
 void powertransView::LoadDICOM() {
 
-    //Use MITK DICOM editor
-    QString editor_id = "org.mitk.editors.dicomeditor";
+    //Use MITK DICOM browser
+    QString editor_id = "org.mitk.editors.dicombrowser";
     berry::IEditorInput::Pointer input(new berry::FileEditorInput(QString()));
     this->GetSite()->GetPage()->OpenEditor(input, editor_id);
 
@@ -396,7 +396,7 @@ void powertransView::MapPowerTop() {
 }
 
 void powertransView::ResetRibSpacing() {
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog *inputs = new QDialog(0, Qt::WindowFlags());
     m_UIRibSpacing.setupUi(inputs);
 
     connect(m_UIRibSpacing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
@@ -445,7 +445,7 @@ void powertransView::LandmarkSelection() {
 
     //Ask for user input to set the ribSpacing number
     if (ribSpacing==0) {
-        QDialog* inputs = new QDialog(0,0);
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
         m_UIRibSpacing.setupUi(inputs);
 
         connect(m_UIRibSpacing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
@@ -501,7 +501,7 @@ void powertransView::MapPowerTransLM() {
     }
     //Ask for user input to set the ribSpacing number
     if (ribSpacing == 0) {
-        QDialog* inputs = new QDialog(0, 0);
+        QDialog *inputs = new QDialog(0, Qt::WindowFlags());
         m_UIRibSpacing.setupUi(inputs);
 
         connect(m_UIRibSpacing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
@@ -575,7 +575,7 @@ void powertransView::MapPowerTransLM() {
     }
     //Ask for user input to set the ribSpacing number
     if (ribSpacing==0) {
-        QDialog* inputs = new QDialog(0,0);
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
         m_UIRibSpacing.setupUi(inputs);
 
         connect(m_UIRibSpacing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
@@ -665,7 +665,7 @@ void powertransView::CalculatePower() {
     }
     //Ask for user input to set the ribSpacing number
     if (ribSpacing == 0) {
-        QDialog* inputs = new QDialog(0, 0);
+        QDialog *inputs = new QDialog(0, Qt::WindowFlags());
         m_UIRibSpacing.setupUi(inputs);
 
         connect(m_UIRibSpacing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
@@ -760,7 +760,7 @@ void powertransView::AHALandmarkSelection() {
 void powertransView::MapAHAfromInput() {
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog *inputs = new QDialog(0, Qt::WindowFlags());
     QSignalMapper* signalMapper = new QSignalMapper(this);
 
     m_UIAhaInput.setupUi(inputs);

@@ -201,7 +201,7 @@ void AtrialScarView::LoadDICOM() {
             } else {
 
                 MITK_WARN << "Problem with conversion.";
-                QMessageBox::warning(NULL, "Attention", "Problem with alternative conversion. Try MITK Dicom editor?");
+                QMessageBox::warning(NULL, "Attention", "Problem with alternative conversion. Try MITK DICOM browser?");
                 return;
 
             }//_if
@@ -209,8 +209,8 @@ void AtrialScarView::LoadDICOM() {
 
     } else {
 
-        MITK_INFO << "Using MITK DICOM editor";
-        QString editor_id = "org.mitk.editors.dicomeditor";
+        MITK_INFO << "Using MITK DICOM browser";
+        QString editor_id = "org.mitk.editors.dicombrowser";
         berry::IEditorInput::Pointer input(new berry::FileEditorInput(QString()));
         this->GetSite()->GetPage()->OpenEditor(input, editor_id);
 
@@ -362,7 +362,7 @@ void AtrialScarView::AutomaticAnalysis() {
         }
     }//_while
 
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     m_UIcemrgnet.setupUi(inputs);
     connect(m_UIcemrgnet.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_UIcemrgnet.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -420,7 +420,7 @@ void AtrialScarView::AutomaticAnalysis() {
             MITK_INFO << "[UI] Creating list of thresholds";
             separated_thresh_list.removeLast();
             separated_thresh_list.removeLast();
-            separated_thresh_list = thresh_list.split(",", QString::SkipEmptyParts);
+            separated_thresh_list = thresh_list.split(",", Qt::SkipEmptyParts);
             int listspaces = separated_thresh_list.removeAll(" ");
             int listduplicates = separated_thresh_list.removeDuplicates();
             separated_thresh_list.sort();
@@ -1167,7 +1167,7 @@ void AtrialScarView::CreateSurf() {
             }//_if
 
             //Ask for user input to set the parameters
-            QDialog* inputs = new QDialog(0, 0);
+            QDialog* inputs = new QDialog(0, Qt::WindowFlags());
             m_UIMeshing.setupUi(inputs);
             connect(m_UIMeshing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
             connect(m_UIMeshing.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -1421,7 +1421,7 @@ void AtrialScarView::ScarMap() {
             if (scar) {
 
                 //Ask for user input to set the parameters
-                QDialog* inputs = new QDialog(0, 0);
+                QDialog* inputs = new QDialog(0, Qt::WindowFlags());
                 m_UIScar.setupUi(inputs);
                 connect(m_UIScar.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
                 connect(m_UIScar.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -1448,7 +1448,7 @@ void AtrialScarView::ScarMap() {
                      * Producibility Test
                      **/
                     QString prodPath = directory + "/";
-                    ofstream prodFile1;
+                    std::ofstream prodFile1;
                     prodFile1.open((prodPath + "prodScarMapInputs.txt").toStdString());
                     prodFile1 << minStep << "\n";
                     prodFile1 << maxStep << "\n";
@@ -1650,7 +1650,7 @@ void AtrialScarView::Threshold() {
     }//_data
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     m_UISQuant.setupUi(inputs);
     connect(m_UISQuant.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_UISQuant.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));

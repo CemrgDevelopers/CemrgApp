@@ -83,8 +83,9 @@ PURPOSE.  See the above copyright notices for more information.
 
 // Qt
 #include <QMessageBox>
-#include <QDesktopWidget>
 #include <QFile>
+#include <QGuiApplication>
+#include <QScreen>
 
 // CemrgAppModule
 #include <CemrgAtriaClipper.h>
@@ -125,7 +126,7 @@ void AtrialFibresClipperView::CreateQtPartControl(QWidget *parent) {
     defaultClipperRadius = 9.0;
 
     MITK_INFO <<"Create GUI widgets";
-    inputs = new QDialog(0,0);
+    inputs = new QDialog(0, Qt::WindowFlags());
     m_Labels.setupUi(inputs);
     connect(m_Labels.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_Labels.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -150,14 +151,14 @@ void AtrialFibresClipperView::CreateQtPartControl(QWidget *parent) {
 
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
             vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-    m_Controls.widget_1->SetRenderWindow(renderWindow);
-    m_Controls.widget_1->GetRenderWindow()->AddRenderer(renderer);
+    m_Controls.widget_1->setRenderWindow(renderWindow);
+    m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
     MITK_INFO << "Setup keyboard interactor";
     callBack = vtkSmartPointer<vtkCallbackCommand>::New();
     callBack->SetCallback(KeyCallBackFunc);
     callBack->SetClientData(this);
-    interactor = m_Controls.widget_1->GetRenderWindow()->GetInteractor();
+    interactor = m_Controls.widget_1->renderWindow()->GetInteractor();
     interactor->SetInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New());
     interactor->GetInteractorStyle()->KeyPressActivationOff();
     interactor->GetInteractorStyle()->AddObserver(vtkCommand::KeyPressEvent, callBack);
@@ -271,7 +272,7 @@ void AtrialFibresClipperView::CtrLines() {
         linesActor->GetProperty()->SetColor(1,0,0);
         renderer->AddActor(linesActor);
     }//_for
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 
     //Adjust controllers
     m_Controls.button_man1_ctrlines->setEnabled(false);
@@ -332,7 +333,7 @@ void AtrialFibresClipperView::CtrPlanes() {
             comboText = "APPENDAGE";
         m_Controls.comboBox->insertItem(i, comboText);
     }//_for
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 
     //Adjust controllers
     m_Controls.comboBox->setCurrentIndex(0);
@@ -432,7 +433,7 @@ void AtrialFibresClipperView::CtrPlanesPlacer() {
     clipper->CalcParamsOfPlane(ctrPlane, indexBox, position);
 
     ctrPlane->Update();
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialFibresClipperView::CtrLinesSelector(int index) {
@@ -472,7 +473,7 @@ void AtrialFibresClipperView::CtrLinesSelector(int index) {
     m_Controls.slider->setValue(position);
     m_Controls.spinBox->setValue(adjust);
     pickedCutterSeeds->SetPoints(vtkSmartPointer<vtkPoints>::New());
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialFibresClipperView::PvClipperRadius(){
@@ -523,7 +524,7 @@ void AtrialFibresClipperView::SaveLabels(){
     QString prodPath = directory + "/";
     std::vector<int> ignoredIds;
     int ignored=0, discarded=0;
-    ofstream fileLabels, fileIds, fileLabelInShell, fileIgnoreIds, fileDiscardIds;
+    std::ofstream fileLabels, fileIds, fileLabelInShell, fileIgnoreIds, fileDiscardIds;
 
     fileLabels.open((prodPath + "prodSeedLabels.txt").toStdString());
     fileIds.open((prodPath + "prodSeedIds.txt").toStdString());
@@ -580,7 +581,7 @@ void AtrialFibresClipperView::ShowPvClippers(){
     bool showOnRenderer= true;
     CreateSphereClipperAndRadiiVectors(showOnRenderer);
 
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 
     m_Controls.slider_auto->setEnabled(true);
     m_Controls.slider_auto->setRange(4, 30);
@@ -714,7 +715,7 @@ void AtrialFibresClipperView::InterPvSpacing(){
 
 int AtrialFibresClipperView::GetUserFixMeshingLabel(){
     // returns the label to fix in the corridor (or -1 to cancel)
-    QDialog* inputs = new QDialog(0,0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     m_UICorridor.setupUi(inputs);
     connect(m_UICorridor.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_UICorridor.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -982,7 +983,7 @@ void AtrialFibresClipperView::PickCallBack(bool pvCorridor) {
         corridorLineSeeds->Modified();
     }
 
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialFibresClipperView::ManualCutterCallBack() {
@@ -1021,7 +1022,7 @@ void AtrialFibresClipperView::ManualCutterCallBack() {
     double* point = surface->GetVtkPolyData()->GetPoint(pickedSeedId);
     pickedCutterSeeds->GetPoints()->InsertNextPoint(point);
     pickedCutterSeeds->Modified();
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialFibresClipperView::KeyCallBackFunc(vtkObject*, long unsigned int, void* ClientData, void*) {
@@ -1074,7 +1075,7 @@ void AtrialFibresClipperView::KeyCallBackFunc(vtkObject*, long unsigned int, voi
                 self->pickedSeedLabels.pop_back();
             }//_if
 
-            self->m_Controls.widget_1->GetRenderWindow()->Render();
+            self->m_Controls.widget_1->renderWindow()->Render();
         } else if (key == "X" || key == "x"){
             if(self->automaticPipeline){
                 if(self->corridorCount<self->corridorMax){
@@ -1211,7 +1212,7 @@ void AtrialFibresClipperView::KeyCallBackFunc(vtkObject*, long unsigned int, voi
                 for (unsigned int i=0; i<self->clipperActors.size(); i++)
                 self->clipperActors.at(i)->GetProperty()->SetOpacity(1.0);
             }//_if
-            self->m_Controls.widget_1->GetRenderWindow()->Render();
+            self->m_Controls.widget_1->renderWindow()->Render();
 
         }//_if_key
 
@@ -1350,7 +1351,7 @@ void AtrialFibresClipperView::SetAutomaticModeButtons(bool b){
 
 void AtrialFibresClipperView::UserSelectPvLabel(){
     int dialogCode = inputs->exec();
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - inputs->width()) / 2;
     int y = (screenGeometry.height() - inputs->height()) / 2;
     inputs->move(x,y);

@@ -125,8 +125,8 @@ void MmcwView::OnSelectionChanged(
  */
 void MmcwView::LoadDICOM() {
 
-    //Use MITK DICOM editor
-    QString editor_id = "org.mitk.editors.dicomeditor";
+    //Use MITK DICOM browser
+    QString editor_id = "org.mitk.editors.dicombrowser";
     berry::IEditorInput::Pointer input(new berry::FileEditorInput(QString()));
     this->GetSite()->GetPage()->OpenEditor(input, editor_id);
 }
@@ -555,7 +555,7 @@ void MmcwView::CreateSurf() {
         return;
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog *inputs = new QDialog(0, Qt::WindowFlags());
     m_UIMeshing.setupUi(inputs);
     connect(m_UIMeshing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
     connect(m_UIMeshing.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
@@ -683,7 +683,7 @@ void MmcwView::Tracking() {
     }//_if
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog* inputs = new QDialog(0, Qt::WindowFlags());
     QSignalMapper* signalMapper = new QSignalMapper(this);
 
     m_UITracking.setupUi(inputs);
@@ -709,16 +709,45 @@ void MmcwView::Tracking() {
 
         QString aPath;
         if (time.isEmpty()) {
-            ofstream file;
+            std::ofstream file;
+            if (!para.isEmpty()) {
+                QFileInfo fi(para);
+                aPath = fi.absolutePath();
+            }
+            else {
+                //Absolute path
+                aPath = QCoreApplication::applicationDirPath() + "/MLib";
+            }
 
-            MITK_INFO << "[ATTENTION] Saving imgTimes.lst file to project directory.";
-            time = directory + "/imgTimes.lst";
-            file.open(time.toStdString(), ofstream::binary);
-            file << "dcm- .nii\n";
+            bool dcm_path_fix = true;
+            if (dcm_path_fix) {
+                MITK_INFO << "[ATTENTION] Saving imgTimes.lst file to project directory.";
+                time = directory + "/imgTimes.lst";
+                file.open(time.toStdString(), std::ofstream::binary);
+                file << "dcm- .nii\n";
+            }
+            else {
+                QDir apathd(aPath);
+                if (apathd.mkpath(aPath)) {
+                    // file.open(aPath.toStdString() + "/imgTimes.lst");
+                    QDir mainDirectory(directory);
+                    QString aRelativePath = mainDirectory.relativeFilePath(aPath);
+                    time = aPath + "/imgTimes.lst";
+                    file.open(time.toStdString(), std::ofstream::binary);
+                    if (aRelativePath==".")
+                        file << "dcm- .nii\n";
+                    else
+                        file << aRelativePath << "/dcm- .nii\n";
 
-            for (int i = 0; i < timePoints; i++) {
-                MITK_INFO << "File contents: " << i << " " << i * 10 << "\n";
-                file << i << " " << i * 10 << "\n";
+                } else {
+                    QMessageBox::warning(NULL, "Attention", "Error creating path:\n" + aPath);
+                    directory = QString();
+                    return;
+                }
+            }
+            for (int i=0; i<timePoints; i++) {
+                MITK_INFO << "File contents: " << i << " " << i*10 << "\n";
+                file << i << " " << i*10 << "\n";
             }
             file.close();
         }//_if
@@ -764,7 +793,7 @@ void MmcwView::Applying() {
     }//_if
 
     //Ask for user input to set the parameters
-    QDialog* inputs = new QDialog(0, 0);
+    QDialog *inputs = new QDialog(0, Qt::WindowFlags());
     QSignalMapper* signalMapper = new QSignalMapper(this);
 
     m_UIApplying.setupUi(inputs);

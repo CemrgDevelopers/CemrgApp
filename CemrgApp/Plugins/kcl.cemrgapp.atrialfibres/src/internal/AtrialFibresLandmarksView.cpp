@@ -80,7 +80,8 @@ PURPOSE.  See the above copyright notices for more information.
 
 // Qt
 #include <QMessageBox>
-#include <QDesktopWidget>
+#include <QGuiApplication>
+#include <QScreen>
 
 // CemrgAppModule
 #include <CemrgAtriaClipper.h>
@@ -109,12 +110,12 @@ void AtrialFibresLandmarksView::CreateQtPartControl(QWidget *parent) {
     }
 
     //Create GUI widgets
-    inputsRough = new QDialog(0,0);
+    inputsRough = new QDialog(0, Qt::WindowFlags());
     m_Rough.setupUi(inputsRough);
     connect(m_Rough.buttonBox, SIGNAL(accepted()), inputsRough, SLOT(accept()));
     connect(m_Rough.buttonBox, SIGNAL(rejected()), inputsRough, SLOT(reject()));
 
-    inputsRefined = new QDialog(0,0);
+    inputsRefined = new QDialog(0, Qt::WindowFlags());
     m_Refined.setupUi(inputsRefined);
     connect(m_Refined.buttonBox, SIGNAL(accepted()), inputsRefined, SLOT(accept()));
     connect(m_Refined.buttonBox, SIGNAL(rejected()), inputsRefined, SLOT(reject()));
@@ -139,14 +140,14 @@ void AtrialFibresLandmarksView::CreateQtPartControl(QWidget *parent) {
 
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
             vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-    m_Controls.widget_1->SetRenderWindow(renderWindow);
-    m_Controls.widget_1->GetRenderWindow()->AddRenderer(renderer);
+    m_Controls.widget_1->setRenderWindow(renderWindow);
+    m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
     //Setup keyboard interactor
     callBack = vtkSmartPointer<vtkCallbackCommand>::New();
     callBack->SetCallback(KeyCallBackFunc);
     callBack->SetClientData(this);
-    interactor = m_Controls.widget_1->GetRenderWindow()->GetInteractor();
+    interactor = m_Controls.widget_1->renderWindow()->GetInteractor();
     interactor->SetInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New());
     interactor->GetInteractorStyle()->KeyPressActivationOff();
     interactor->GetInteractorStyle()->AddObserver(vtkCommand::KeyPressEvent, callBack);
@@ -200,7 +201,7 @@ void AtrialFibresLandmarksView::SaveRoughPoints(){
     MITK_INFO << "[SaveRoughPoints] Saving rough points to file.";
     QString prodPath = directory + "/";
     QString outname = (isLeftAtrium) ? "prodLaRoughLandmarks" : "prodRaLandmarks";
-    ofstream fileRough, fileRoughLabels;
+    std::ofstream fileRough, fileRoughLabels;
 
     MITK_INFO << "[SaveRoughPoints] Saving TXT file.";
     fileRough.open((prodPath + outname + ".txt").toStdString());
@@ -244,8 +245,7 @@ void AtrialFibresLandmarksView::SaveRefinedPoints(){
     MITK_INFO << "[SaveRefinedPoints] Saving refined points to file.";
     QString prodPath = directory + "/";
     QString outname = (isLeftAtrium) ? "prodLaRefinedLandmarks" : "prodRaRegion";
-    ofstream fileRefined;
-    ofstream fileRough, fileRefinedLabels;
+    std::ofstream fileRefined, fileRough, fileRefinedLabels;
 
     MITK_INFO << "[SaveRefinedPoints] Saving TXT file.";
     fileRefined.open((prodPath + outname + ".txt").toStdString());
@@ -415,7 +415,7 @@ void AtrialFibresLandmarksView::PickCallBack(bool refinedLandmarks) {
         refinedLineSeeds->Modified();
     }
 
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void AtrialFibresLandmarksView::KeyCallBackFunc(vtkObject*, long unsigned int, void* ClientData, void*) {
@@ -476,7 +476,7 @@ void AtrialFibresLandmarksView::KeyCallBackFunc(vtkObject*, long unsigned int, v
             self->roughSeedLabels.pop_back();
         }//_if
 
-        self->m_Controls.widget_1->GetRenderWindow()->Render();
+        self->m_Controls.widget_1->renderWindow()->Render();
     } else if (key == "X" || key == "x"){
         if(self->m_Controls.button_save2_refined->isEnabled()){
             bool refinedLandmarks = true;
@@ -531,7 +531,7 @@ void AtrialFibresLandmarksView::KeyCallBackFunc(vtkObject*, long unsigned int, v
                 self->refinedSeedLabels.pop_back();
             }//_if
 
-            self->m_Controls.widget_1->GetRenderWindow()->Render();
+            self->m_Controls.widget_1->renderWindow()->Render();
         }
     } else if (key == "H" || key == "h"){
         self->Help();
@@ -623,7 +623,7 @@ void AtrialFibresLandmarksView::UserSelectPvLabel(bool refinedLandmarks){
 
 void AtrialFibresLandmarksView::UserSelectPvRoughLabel(){
     int dialogCode = inputsRough->exec();
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - inputsRough->width()) / 2;
     int y = (screenGeometry.height() - inputsRough->height()) / 2;
     inputsRough->move(x,y);
@@ -680,7 +680,7 @@ void AtrialFibresLandmarksView::UserSelectPvRoughLabel(){
 
 void AtrialFibresLandmarksView::UserSelectPvRefinedLabel(){
     int dialogCode = inputsRefined->exec();
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - inputsRefined->width()) / 2;
     int y = (screenGeometry.height() - inputsRefined->height()) / 2;
     inputsRefined->move(x,y);

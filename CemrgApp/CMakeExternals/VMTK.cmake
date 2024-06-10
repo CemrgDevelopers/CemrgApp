@@ -34,8 +34,8 @@ if(MITK_USE_VMTK)
       )
     endif()
 
-    set(VMTK_GIT_REPOSITORY "https://github.com/vmtk/vmtk.git" CACHE STRING "The git repository for cloning VMTK")
-    set(VMTK_GIT_TAG "v1.4.0" CACHE STRING "The git tag/hash to be used when cloning from VMTK_GIT_REPOSITORY")
+    set(VMTK_GIT_REPOSITORY "https://github.com/OpenHeartDevelopers/vmtk.git" CACHE STRING "The git repository for cloning VMTK")
+    set(VMTK_GIT_TAG "098885746923a181909f4756979968925934e6ad" CACHE STRING "The git tag/hash to be used when cloning from VMTK_GIT_REPOSITORY")
     mark_as_advanced(VMTK_GIT_REPOSITORY VMTK_GIT_TAG)
 
     if (UNIX)

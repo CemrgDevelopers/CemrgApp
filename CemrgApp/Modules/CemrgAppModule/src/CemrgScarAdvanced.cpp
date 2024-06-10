@@ -209,7 +209,7 @@ std::string CemrgScarAdvanced::num2str(double num, int precision) {
 
 void CemrgScarAdvanced::SaveStrToFile(std::string path2file, std::string filename, std::string text) {
     MITK_INFO << "[AdvancedScar] Saving to file: " + path2file + filename;
-    ofstream outst;
+    std::ofstream outst;
     std::stringstream ss;
 
     ss << (path2file + filename);
@@ -359,7 +359,7 @@ void CemrgScarAdvanced::ExtractCorridorData(
     std::vector<int> pointIDsInCorridor;
 
     int count = 0;
-    ofstream out;
+    std::ofstream out;
     xyz[0] = 1e-10; xyz[1] = 1e-10; xyz[2] = 1e-10;
 
     std::stringstream ss;
@@ -465,7 +465,8 @@ void CemrgScarAdvanced::ExtractCorridorData(
     p2c->Update();
 
     vtkSmartPointer<vtkThreshold> threshold = vtkSmartPointer<vtkThreshold>::New();
-    threshold->ThresholdByUpper(_fill_threshold);
+    threshold->SetThresholdFunction(vtkThreshold::THRESHOLD_UPPER);
+    threshold->SetUpperThreshold(_fill_threshold);
     threshold->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
     threshold->SetInputData(p2c->GetPolyDataOutput());
     threshold->Update();
@@ -522,9 +523,9 @@ void CemrgScarAdvanced::NeighbourhoodFillingPercentage(std::vector<int> points) 
     double fillingcounter = 0;
     double total = points.size();
 
-    // bring al lthe scalars to an array
+    // bring all the scalars to an array
     vtkFloatArray* scalars = vtkFloatArray::SafeDownCast(_SourcePolyData->GetPointData()->GetScalars());
-    MITK_INFO << ("[INFO] Exploring the predeteremined neighbourhood at threshold = " +
+    MITK_INFO << ("[INFO] Exploring the predetermined neighbourhood at threshold = " +
         QString::number(_fill_threshold)).toStdString();
     MITK_INFO << ("[INFO] Number of points: " + QString::number(total)).toStdString();
     for (unsigned int i = 0; i < points.size(); i++) {
