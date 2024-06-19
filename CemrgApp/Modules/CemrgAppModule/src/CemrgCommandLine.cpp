@@ -92,7 +92,7 @@ QDialog* CemrgCommandLine::GetDialog() {
  ****************** Execute Plugin Specific Functions **********************
  ***************************************************************************/
 
-QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morphOperation, int iter, float th, int blur, int smth) {
+QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morphOperation, int iter, float thresh, int blur, int smooth) {
 
     MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
 
@@ -103,12 +103,12 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
     mitk::ProgressBar::GetInstance()->Progress();
     if (QString::compare(closeOutputPath, "ERROR_IN_PROCESSING")!=0) {
 
-        surfOutputPath = ExecuteExtractSurface(dir, closeOutputPath, "segmentation.vtk", th, blur);
+        surfOutputPath = ExecuteExtractSurface(dir, closeOutputPath, "segmentation.vtk", thresh, blur);
         mitk::ProgressBar::GetInstance()->Progress();
 
         if (QString::compare(surfOutputPath, "ERROR_IN_PROCESSING")!=0) {
 
-            outAbsolutePath = ExecuteSmoothSurface(dir, surfOutputPath, surfOutputPath, smth);
+            outAbsolutePath = ExecuteSmoothSurface(dir, surfOutputPath, surfOutputPath, smooth);
             remove((dir + "/segmentation.s.nii").toStdString().c_str());
             mitk::ProgressBar::GetInstance()->Progress();
 
