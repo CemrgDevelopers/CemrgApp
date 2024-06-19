@@ -126,20 +126,30 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
     } else {
         // New implementation using CemrgCommonUtils::ExtractSurfaceFromSegmentation
 
+        MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
+
+        QString outAbsolutePath = "ERROR_IN_PROCESSING";
+
         // Step 1: Close
         // TODO: Continue using MIRTK tool for now; José will look for replacement
         QString closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
+        mitk::ProgressBar::GetInstance()->Progress();
 
-        // Step 2+3: Extract surface + smooth
-        mitk::Image::Pointer closedImage = nullptr; // TODO: Load output image from `closeOutputPath`
-        double decimation = 0.0; // TODO: determine appropriate value (or add to argument list?)
+        if (QString::compare(closeOutputPath, "ERROR_IN_PROCESSING") != 0) {
+            // Step 2+3: Extract surface + smooth
+            mitk::Image::Pointer closedImage = nullptr; // TODO: Load output image from `closeOutputPath`
+            double decimation = 0.0; // TODO: determine appropriate value (or add to argument list?)
 
-        // TODO: check semantics of thresh/blur/smooth are identical
-        mitk::Surface::Pointer smoothedSurface = ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth, decimation);
+            // TODO: check semantics of thresh/blur/smooth are identical
+            mitk::Surface::Pointer smoothedSurface = ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth, decimation);
 
-        // TODO: calling code expects a QString containing the file path as return value,
-        // so we need to write `smoothedSurface` to a file and return its path
-        QString outAbsolutePath = "ERROR_IN_PROCESSING";
+            // TODO: calling code expects a QString containing the file path as return value,
+            // so we need to write `smoothedSurface` to a file and return its path
+            outAbsolutePath = dir + "/segmentation.vtk";
+            remove((dir + "/segmentation.s.nii").toStdString().c_str());
+        }
+        // TODO: still counting "extract surface" and "smooth" as two steps, as before. Reduce this to one?
+        mitk::ProgressBar::GetInstance()->Progress(2);
     }
 
     return outAbsolutePath;
