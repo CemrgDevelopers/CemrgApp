@@ -44,6 +44,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include <chrono>
 #include <sys/stat.h>
 #include "CemrgCommandLine.h"
+#include "CemrgCommonUtils.h"
 
 CemrgCommandLine::CemrgCommandLine() {
 
@@ -94,30 +95,52 @@ QDialog* CemrgCommandLine::GetDialog() {
 
 QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morphOperation, int iter, float thresh, int blur, int smooth) {
 
-    MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
+    bool useMIRTK = true; // switch between old/new implementations of this function
+    if (useMIRTK) {
 
-    QString closeOutputPath, surfOutputPath;
-    QString outAbsolutePath = "ERROR_IN_PROCESSING";
-    closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
+        MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
 
-    mitk::ProgressBar::GetInstance()->Progress();
-    if (QString::compare(closeOutputPath, "ERROR_IN_PROCESSING")!=0) {
+        QString closeOutputPath, surfOutputPath;
+        QString outAbsolutePath = "ERROR_IN_PROCESSING";
+        closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
 
-        surfOutputPath = ExecuteExtractSurface(dir, closeOutputPath, "segmentation.vtk", thresh, blur);
         mitk::ProgressBar::GetInstance()->Progress();
+        if (QString::compare(closeOutputPath, "ERROR_IN_PROCESSING")!=0) {
 
-        if (QString::compare(surfOutputPath, "ERROR_IN_PROCESSING")!=0) {
-
-            outAbsolutePath = ExecuteSmoothSurface(dir, surfOutputPath, surfOutputPath, smooth);
-            remove((dir + "/segmentation.s.nii").toStdString().c_str());
+            surfOutputPath = ExecuteExtractSurface(dir, closeOutputPath, "segmentation.vtk", thresh, blur);
             mitk::ProgressBar::GetInstance()->Progress();
 
+            if (QString::compare(surfOutputPath, "ERROR_IN_PROCESSING")!=0) {
+
+                outAbsolutePath = ExecuteSmoothSurface(dir, surfOutputPath, surfOutputPath, smooth);
+                remove((dir + "/segmentation.s.nii").toStdString().c_str());
+                mitk::ProgressBar::GetInstance()->Progress();
+
+            } else {
+                mitk::ProgressBar::GetInstance()->Progress();
+            }//_if
         } else {
-            mitk::ProgressBar::GetInstance()->Progress();
+            mitk::ProgressBar::GetInstance()->Progress(2);
         }//_if
+
     } else {
-        mitk::ProgressBar::GetInstance()->Progress(2);
-    }//_if
+        // New implementation using CemrgCommonUtils::ExtractSurfaceFromSegmentation
+
+        // Step 1: Close
+        // TODO: Continue using MIRTK tool for now; José will look for replacement
+        QString closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
+
+        // Step 2+3: Extract surface + smooth
+        mitk::Image::Pointer closedImage = nullptr; // TODO: Load output image from `closeOutputPath`
+        double decimation = 0.0; // TODO: determine appropriate value (or add to argument list?)
+
+        // TODO: check semantics of thresh/blur/smooth are identical
+        mitk::Surface::Pointer smoothedSurface = ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth, decimation);
+
+        // TODO: calling code expects a QString containing the file path as return value,
+        // so we need to write `smoothedSurface` to a file and return its path
+        QString outAbsolutePath = "ERROR_IN_PROCESSING";
+    }
 
     return outAbsolutePath;
 }
