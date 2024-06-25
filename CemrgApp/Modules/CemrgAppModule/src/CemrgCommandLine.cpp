@@ -137,15 +137,16 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
 
         if (QString::compare(closeOutputPath, "ERROR_IN_PROCESSING") != 0) {
             // Step 2+3: Extract surface + smooth
-            mitk::Image::Pointer closedImage = nullptr; // TODO: Load output image from `closeOutputPath`
-            double decimation = 0.0; // TODO: determine appropriate value (or add to argument list?)
+            // Load output image from MIRTK `close` step into memory
+            mitk::Image::Pointer closedImage = mitk::IOUtil::Load<mitk::Image>(closeOutputPath.toStdString());
 
+            // TODO: We implicitly use the default value for `decimation` here (0.5, as defined in CemrgCommonUtils.h) -> make this configurable?
             // TODO: check semantics of thresh/blur/smooth are identical
-            mitk::Surface::Pointer smoothedSurface = ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth, decimation);
+            mitk::Surface::Pointer smoothedSurface = ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth);
 
-            // TODO: calling code expects a QString containing the file path as return value,
-            // so we need to write `smoothedSurface` to a file and return its path
+            // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
             outAbsolutePath = dir + "/segmentation.vtk";
+            mitk::IOUtil::Save(smoothedSurface, outAbsolutePath.toStdString());
             remove((dir + "/segmentation.s.nii").toStdString().c_str());
         }
         // TODO: still counting "extract surface" and "smooth" as two steps, as before. Reduce this to one?
