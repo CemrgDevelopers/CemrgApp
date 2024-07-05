@@ -94,14 +94,13 @@ QDialog* CemrgCommandLine::GetDialog() {
  ***************************************************************************/
 
 QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morphOperation, int iter, float thresh, int blur, int smooth) {
+    MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
 
-    bool useMIRTK = true; // switch between old/new implementations of this function
+    QString outAbsolutePath = "ERROR_IN_PROCESSING";
+
+    bool useMIRTK = false; // switch between old/new implementations of this function
     if (useMIRTK) {
-
-        MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
-
         QString closeOutputPath, surfOutputPath;
-        QString outAbsolutePath = "ERROR_IN_PROCESSING";
         closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
 
         mitk::ProgressBar::GetInstance()->Progress();
@@ -126,10 +125,6 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
     } else {
         // New implementation using CemrgCommonUtils::ExtractSurfaceFromSegmentation
 
-        MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
-
-        QString outAbsolutePath = "ERROR_IN_PROCESSING";
-
         // Step 1: Close
         // TODO: Continue using MIRTK tool for now; José will look for replacement
         QString closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
@@ -142,7 +137,8 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
 
             // TODO: We implicitly use the default value for `decimation` here (0.5, as defined in CemrgCommonUtils.h) -> make this configurable?
             // TODO: check semantics of thresh/blur/smooth are identical
-            mitk::Surface::Pointer smoothedSurface = ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth);
+            mitk::Surface::Pointer smoothedSurface = CemrgCommonUtils::ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth);
+            CemrgCommonUtils::FlipXYPlane(smoothedSurface, "", "");
 
             // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
             outAbsolutePath = dir + "/segmentation.vtk";
