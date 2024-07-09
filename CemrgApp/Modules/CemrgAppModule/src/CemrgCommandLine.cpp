@@ -135,7 +135,6 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
             // Load output image from MIRTK `close` step into memory
             mitk::Image::Pointer closedImage = mitk::IOUtil::Load<mitk::Image>(closeOutputPath.toStdString());
 
-            // TODO: We implicitly use the default value for `decimation` here (0.5, as defined in CemrgCommonUtils.h) -> make this configurable?
             // TODO: check semantics of thresh/blur/smooth are identical
             mitk::Surface::Pointer smoothedSurface = CemrgCommonUtils::ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth);
             CemrgCommonUtils::FlipXYPlane(smoothedSurface, "", "");
