@@ -49,7 +49,7 @@ public:
     QDialog* GetDialog();
 
     //Execute Plugin Specific Functions
-    QString ExecuteSurf(QString dir, QString segPath, int iter = 1, float th = 0.5, int blur = 0, int smth = 10);
+    QString ExecuteSurf(QString dir, QString segPath, float th = 0.5, int blur = 0, int smth = 10);
     QString ExecuteCreateCGALMesh(QString dir, QString outputName, QString paramsFullPath, QString segmentationName = "converted.inr");
     void ExecuteTracking(QString dir, QString imgTimes, QString param, QString output = "tsffd.dof");
     void ExecuteApplying(QString dir, QString inputMesh, double iniTime, QString dofin, int noFrames, int smooth);

@@ -93,7 +93,7 @@ QDialog* CemrgCommandLine::GetDialog() {
  ****************** Execute Plugin Specific Functions **********************
  ***************************************************************************/
 
-QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, int iter, float thresh, int blur, int smooth) {
+QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, float thresh, int blur, int smooth) {
     MITK_INFO << "[ATTENTION] SURFACE CREATION: Surface -> Smooth";
 
     // Load input image into memory
