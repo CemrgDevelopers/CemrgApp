@@ -472,7 +472,7 @@ void AtrialFibresView::AutomaticAnalysis(){
         std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
         cmd->SetUseDockerContainers(true);
 
-        cmd->ExecuteSurf(directory, Path("prodClean.nii"), "close", uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
+        cmd->ExecuteSurf(directory, Path("prodClean.nii"), uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
         atrium->ProjectTagsOnExistingSurface(tagAtriumAuto, directory, tagName+".vtk");
 
         MITK_INFO << "[AUTOMATIC_PIPELINE] Add the mesh to storage";
@@ -673,7 +673,7 @@ void AtrialFibresView::IdentifyPV(){
                     std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
                     cmd->SetUseDockerContainers(true);
 
-                    cmd->ExecuteSurf(directory, Path("prodClean.nii"), "close", uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
+                    cmd->ExecuteSurf(directory, Path("prodClean.nii"), uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
 
                     //Add the mesh to storage
                     std::string meshName = segNode->GetName() + "-Mesh";
@@ -728,7 +728,7 @@ void AtrialFibresView::CreateLabelledMesh(){
         std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
         cmd->SetUseDockerContainers(true);
 
-        cmd->ExecuteSurf(directory, Path("prodClean.nii"), "close", uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
+        cmd->ExecuteSurf(directory, Path("prodClean.nii"), uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
         atrium->ProjectTagsOnExistingSurface(pveins, directory, tagName+".vtk");
 
         MITK_INFO << "Add the mesh to storage";
