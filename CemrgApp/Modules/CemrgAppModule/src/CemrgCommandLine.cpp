@@ -124,27 +124,20 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
 
     } else {
         // New implementation using CemrgCommonUtils::ExtractSurfaceFromSegmentation
+        // Can skip `close` step here, as it gives minimal benefit and is slow.
 
-        // Step 1: Close
-        // TODO: Continue using MIRTK tool for now; José will look for replacement
-        QString closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
+        // Load input image into memory
+        QString inputPath = segPath.contains(dir) ? segPath : dir + "/" + segPath;
         mitk::ProgressBar::GetInstance()->Progress();
+        mitk::Image::Pointer inputImage = mitk::IOUtil::Load<mitk::Image>(inputPath.toStdString());
 
-        if (QString::compare(closeOutputPath, "ERROR_IN_PROCESSING") != 0) {
-            // Step 2+3: Extract surface + smooth
-            // Load output image from MIRTK `close` step into memory
-            mitk::Image::Pointer closedImage = mitk::IOUtil::Load<mitk::Image>(closeOutputPath.toStdString());
+        // TODO: check semantics of thresh/blur/smooth are identical
+        mitk::Surface::Pointer smoothedSurface = CemrgCommonUtils::ExtractSurfaceFromSegmentation(inputImage, (double)thresh, (double)blur, (double)smooth);
+        CemrgCommonUtils::FlipXYPlane(smoothedSurface, "", "");
 
-            // TODO: check semantics of thresh/blur/smooth are identical
-            mitk::Surface::Pointer smoothedSurface = CemrgCommonUtils::ExtractSurfaceFromSegmentation(closedImage, (double)thresh, (double)blur, (double)smooth);
-            CemrgCommonUtils::FlipXYPlane(smoothedSurface, "", "");
-
-            // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
-            outAbsolutePath = dir + "/segmentation.vtk";
-            mitk::IOUtil::Save(smoothedSurface, outAbsolutePath.toStdString());
-            remove((dir + "/segmentation.s.nii").toStdString().c_str());
-        }
-        // TODO: still counting "extract surface" and "smooth" as two steps, as before. Reduce this to one?
+        // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
+        outAbsolutePath = dir + "/segmentation.vtk";
+        mitk::IOUtil::Save(smoothedSurface, outAbsolutePath.toStdString());
         mitk::ProgressBar::GetInstance()->Progress(2);
     }
 
