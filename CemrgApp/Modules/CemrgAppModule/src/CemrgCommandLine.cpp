@@ -94,52 +94,21 @@ QDialog* CemrgCommandLine::GetDialog() {
  ***************************************************************************/
 
 QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morphOperation, int iter, float thresh, int blur, int smooth) {
-    MITK_INFO << "[ATTENTION] SURFACE CREATION: Close -> Surface -> Smooth";
+    MITK_INFO << "[ATTENTION] SURFACE CREATION: Surface -> Smooth";
 
-    QString outAbsolutePath = "ERROR_IN_PROCESSING";
+    // Load input image into memory
+    QString inputPath = segPath.contains(dir) ? segPath : dir + "/" + segPath;
+    mitk::ProgressBar::GetInstance()->Progress();
+    mitk::Image::Pointer inputImage = mitk::IOUtil::Load<mitk::Image>(inputPath.toStdString());
 
-    bool useMIRTK = false; // switch between old/new implementations of this function
-    if (useMIRTK) {
-        QString closeOutputPath, surfOutputPath;
-        closeOutputPath = ExecuteMorphologicalOperation(morphOperation, dir, segPath, "segmentation.s.nii", iter);
+    // TODO: check semantics of thresh/blur/smooth are identical
+    mitk::Surface::Pointer smoothedSurface = CemrgCommonUtils::ExtractSurfaceFromSegmentation(inputImage, (double)thresh, (double)blur, (double)smooth);
+    CemrgCommonUtils::FlipXYPlane(smoothedSurface, "", "");
 
-        mitk::ProgressBar::GetInstance()->Progress();
-        if (QString::compare(closeOutputPath, "ERROR_IN_PROCESSING")!=0) {
-
-            surfOutputPath = ExecuteExtractSurface(dir, closeOutputPath, "segmentation.vtk", thresh, blur);
-            mitk::ProgressBar::GetInstance()->Progress();
-
-            if (QString::compare(surfOutputPath, "ERROR_IN_PROCESSING")!=0) {
-
-                outAbsolutePath = ExecuteSmoothSurface(dir, surfOutputPath, surfOutputPath, smooth);
-                remove((dir + "/segmentation.s.nii").toStdString().c_str());
-                mitk::ProgressBar::GetInstance()->Progress();
-
-            } else {
-                mitk::ProgressBar::GetInstance()->Progress();
-            }//_if
-        } else {
-            mitk::ProgressBar::GetInstance()->Progress(2);
-        }//_if
-
-    } else {
-        // New implementation using CemrgCommonUtils::ExtractSurfaceFromSegmentation
-        // Can skip `close` step here, as it gives minimal benefit and is slow.
-
-        // Load input image into memory
-        QString inputPath = segPath.contains(dir) ? segPath : dir + "/" + segPath;
-        mitk::ProgressBar::GetInstance()->Progress();
-        mitk::Image::Pointer inputImage = mitk::IOUtil::Load<mitk::Image>(inputPath.toStdString());
-
-        // TODO: check semantics of thresh/blur/smooth are identical
-        mitk::Surface::Pointer smoothedSurface = CemrgCommonUtils::ExtractSurfaceFromSegmentation(inputImage, (double)thresh, (double)blur, (double)smooth);
-        CemrgCommonUtils::FlipXYPlane(smoothedSurface, "", "");
-
-        // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
-        outAbsolutePath = dir + "/segmentation.vtk";
-        mitk::IOUtil::Save(smoothedSurface, outAbsolutePath.toStdString());
-        mitk::ProgressBar::GetInstance()->Progress(2);
-    }
+    // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
+    QString outAbsolutePath = dir + "/segmentation.vtk";
+    mitk::IOUtil::Save(smoothedSurface, outAbsolutePath.toStdString());
+    mitk::ProgressBar::GetInstance()->Progress(2);
 
     return outAbsolutePath;
 }
@@ -385,151 +354,6 @@ void CemrgCommandLine::ExecuteSimpleTranslation(QString dir, QString sourceMeshP
 /***************************************************************************
  ****************** Execute MIRTK Specific Functions **********************
  ***************************************************************************/
-
-QString CemrgCommandLine::ExecuteMorphologicalOperation(QString operation, QString dir, QString segPath, QString outputPath, int iter) {
-
-    MITK_INFO << "[ATTENTION] Attempting Pointset transformation.";
-
-    QString commandName;
-
-    if (QString::compare(operation, "dilate", Qt::CaseInsensitive)==0) {
-        commandName = "dilate-image";
-    } else if (QString::compare(operation, "erode", Qt::CaseInsensitive)==0) {
-        commandName = "erode-image";
-    } else if (QString::compare(operation, "open", Qt::CaseInsensitive)==0) {
-        commandName = "open-image";
-    } else if (QString::compare(operation, "close", Qt::CaseInsensitive)==0) {
-        commandName = "close-image";
-    } else {
-        MITK_ERROR << ("Morphological operation: " + operation + " misspelled or not supported.").toStdString();
-        return "ERROR_IN_PROCESSING";
-    }
-
-    QString inputImgFullPath, outAbsolutePath;
-    QString prodPath = dir + "/";
-
-    inputImgFullPath = segPath.contains(dir, Qt::CaseSensitive) ? segPath : prodPath + segPath;
-    outAbsolutePath = outputPath.contains(dir, Qt::CaseSensitive) ? outputPath : prodPath + outputPath;
-
-    MITK_INFO << ("[...] OPERATION: " + operation).toStdString();
-    MITK_INFO << ("[...] INPUT IMAGE: " + inputImgFullPath).toStdString();
-    MITK_INFO << ("[...] OUTPUT IMAGE: " + outAbsolutePath).toStdString();
-
-    MITK_INFO << "Using static MIRTK libraries.";
-    QString executablePath = QCoreApplication::applicationDirPath() + "/MLib";
-    QString executableName = executablePath + "/" + commandName;
-    QDir apathd(executablePath);
-    QStringList arguments;
-
-    if (apathd.exists()) {
-
-        process->setWorkingDirectory(executablePath);
-        arguments << inputImgFullPath;
-        arguments << outAbsolutePath;
-        arguments << "-iterations" << QString::number(iter);
-
-    } else {
-        QMessageBox::warning(NULL, "Please check the LOG", "MIRTK libraries not found");
-        MITK_WARN << "MIRTK libraries not found. Please make sure the MLib folder is inside the directory;\n\t"+
-                        mitk::IOUtil::GetProgramPath();
-    }//_if
-
-    bool successful = ExecuteCommand(executableName, arguments, outAbsolutePath);
-    if (!successful) {
-        MITK_WARN << "Local MIRTK libraries did not produce a good outcome.";
-        return "ERROR_IN_PROCESSING";
-    } else {
-        return outAbsolutePath;
-    }
-}
-
-QString CemrgCommandLine::ExecuteExtractSurface(QString dir, QString segPath, QString outputPath,float th, int blur) {
-
-    MITK_INFO << "[ATTENTION] Attempting Surface extraction.";
-
-    QString commandName = "extract-surface";
-    QString inputImgFullPath, outAbsolutePath;
-    QString prodPath = dir + "/";
-
-    inputImgFullPath = segPath.contains(dir, Qt::CaseSensitive) ? segPath : prodPath + segPath;
-    outAbsolutePath = outputPath.contains(dir, Qt::CaseSensitive) ? outputPath : prodPath + outputPath;
-
-    MITK_INFO << ("[...] INPUT IMAGE: " + inputImgFullPath).toStdString();
-    MITK_INFO << ("[...] OUTPUT MESH: " + outAbsolutePath).toStdString();
-
-    MITK_INFO << "Using static MIRTK libraries.";
-    QString executablePath = QCoreApplication::applicationDirPath() + "/MLib";
-    QString executableName = executablePath + "/" + commandName;
-    QDir apathd(executablePath);
-    QStringList arguments;
-
-    if (apathd.exists()) {
-
-        process->setWorkingDirectory(executablePath);
-        arguments << inputImgFullPath;
-        arguments << outAbsolutePath;
-        arguments << "-isovalue" << QString::number(th);
-        arguments << "-blur" << QString::number(blur);
-        arguments << "-ascii";
-        arguments << "-verbose" << "3";
-
-    } else {
-        QMessageBox::warning(NULL, "Please check the LOG", "MIRTK libraries not found");
-        MITK_WARN << "MIRTK libraries not found. Please make sure the MLib folder is inside the directory;\n\t"+
-                        mitk::IOUtil::GetProgramPath();
-    }//_if
-
-    bool successful = ExecuteCommand(executableName, arguments, outAbsolutePath);
-    if (!successful) {
-        MITK_WARN << "Local MIRTK libraries did not produce a good outcome.";
-        return "ERROR_IN_PROCESSING";
-    } else {
-        return outAbsolutePath;
-    }
-}
-
-QString CemrgCommandLine::ExecuteSmoothSurface(QString dir, QString segPath, QString outputPath, int smth) {
-
-    MITK_INFO << "[ATTENTION] Attempting Surface extraction.";
-
-    QString commandName = "smooth-surface";
-    QString inputMeshFullPath, outAbsolutePath;
-    QString prodPath = dir + "/";
-
-    inputMeshFullPath = segPath.contains(dir, Qt::CaseSensitive) ? segPath : prodPath + segPath;
-    outAbsolutePath = outputPath.contains(dir, Qt::CaseSensitive) ? outputPath : prodPath + outputPath;
-
-    MITK_INFO << ("[...] INPUT IMAGE: " + inputMeshFullPath).toStdString();
-    MITK_INFO << ("[...] OUTPUT MESH: " + outAbsolutePath).toStdString();
-
-    MITK_INFO << "Using static MIRTK libraries.";
-    QString executablePath = QCoreApplication::applicationDirPath() + "/MLib";
-    QString executableName = executablePath + "/" + commandName;
-    QDir apathd(executablePath);
-    QStringList arguments;
-
-    if (apathd.exists()) {
-
-        process->setWorkingDirectory(executablePath);
-        arguments << inputMeshFullPath;
-        arguments << outAbsolutePath;
-        arguments << "-iterations" << QString::number(smth);
-        arguments << "-verbose" << "3";
-
-    } else {
-        QMessageBox::warning(NULL, "Please check the LOG", "MIRTK libraries not found");
-        MITK_WARN << "MIRTK libraries not found. Please make sure the MLib folder is inside the directory;\n\t"+
-                        mitk::IOUtil::GetProgramPath();
-    }//_if
-
-    bool successful = ExecuteCommand(executableName, arguments, outAbsolutePath);
-    if (!successful) {
-        MITK_WARN << "Local MIRTK libraries did not produce a good outcome.";
-        return "ERROR_IN_PROCESSING";
-    } else {
-        return outAbsolutePath;
-    }
-}
 
 void CemrgCommandLine::ExecuteTransformationOnPoints(QString dir, QString meshFullPath, QString outputMeshFullPath, QString transformFileFullPath, double applyingIniTime) {
 
