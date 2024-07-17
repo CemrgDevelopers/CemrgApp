@@ -209,11 +209,12 @@ void AtrialScarClipperView::iniPreSurf() {
                 mitk::IOUtil::Save(image, path.toStdString());
                 mitk::ProgressBar::GetInstance()->AddStepsToDo(3);
                 std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
-                mitk::Surface::Pointer shell = cmd->ExecuteSurf_new(directory, path, th, blur, smth);
+                QString output = cmd->ExecuteSurf(directory, path, th, blur, smth);
                 QMessageBox::information(NULL, "Attention", "Command Line Operations Finished!");
                 this->BusyCursorOff();
 
                 //Decimate the mesh to visualise
+                mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(output.toStdString());
                 vtkSmartPointer<vtkDecimatePro> deci = vtkSmartPointer<vtkDecimatePro>::New();
                 deci->SetInputData(shell->GetVtkPolyData());
                 deci->SetTargetReduction(ds);

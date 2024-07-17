@@ -29,8 +29,6 @@ PURPOSE.  See the above copyright notices for more information.
 #ifndef CemrgCommandLine_h
 #define CemrgCommandLine_h
 
-#include <mitkSurface.h>
-
 // Qt
 #include <memory>
 #include <QProcess>
@@ -52,7 +50,6 @@ public:
 
     //Execute Plugin Specific Functions
     QString ExecuteSurf(QString dir, QString segPath, float th = 0.5, int blur = 0, int smth = 10);
-    mitk::Surface::Pointer ExecuteSurf_new(QString dir, QString segPath, float th = 0.5, int blur = 0, int smth = 10);
     QString ExecuteCreateCGALMesh(QString dir, QString outputName, QString paramsFullPath, QString segmentationName = "converted.inr");
     void ExecuteTracking(QString dir, QString imgTimes, QString param, QString output = "tsffd.dof");
     void ExecuteApplying(QString dir, QString inputMesh, double iniTime, QString dofin, int noFrames, int smooth);

@@ -94,14 +94,6 @@ QDialog* CemrgCommandLine::GetDialog() {
  ***************************************************************************/
 
 QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, float thresh, int blur, int smooth) {
-    // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
-    mitk::Surface::Pointer surface = CemrgCommandLine::ExecuteSurf_new(dir, segPath, thresh, blur, smooth);
-    QString outAbsolutePath = dir + "/segmentation.vtk";
-    mitk::IOUtil::Save(surface, outAbsolutePath.toStdString());
-    return outAbsolutePath;
-}
-
-mitk::Surface::Pointer CemrgCommandLine::ExecuteSurf_new(QString dir, QString segPath, float thresh, int blur, int smooth) {
     MITK_INFO << "[ATTENTION] SURFACE CREATION: Surface -> Smooth";
 
     // Load input image into memory
@@ -113,8 +105,12 @@ mitk::Surface::Pointer CemrgCommandLine::ExecuteSurf_new(QString dir, QString se
     mitk::Surface::Pointer smoothedSurface = CemrgCommonUtils::ExtractSurfaceFromSegmentation(inputImage, (double)thresh, (double)blur, (double)smooth);
     CemrgCommonUtils::FlipXYPlane(smoothedSurface, "", "");
 
+    // Calling code expects a QString of the file path as return value, not the Surface pointer itself.
+    QString outAbsolutePath = dir + "/segmentation.vtk";
+    mitk::IOUtil::Save(smoothedSurface, outAbsolutePath.toStdString());
     mitk::ProgressBar::GetInstance()->Progress(2);
-    return smoothedSurface;
+
+    return outAbsolutePath;
 }
 
 QString CemrgCommandLine::ExecuteCreateCGALMesh(QString dir, QString outputName, QString paramsFullPath, QString segmentationName) {

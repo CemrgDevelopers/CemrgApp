@@ -540,7 +540,8 @@ void AtrialScarView::AutomaticAnalysis() {
             MITK_INFO << ("[...][3.1] Saved file: " + segCleanPath).toStdString();
 
             MITK_INFO << "[AUTOMATIC_ANALYSIS][4] Vein clipping mesh";
-            mitk::Surface::Pointer shell = cmd->ExecuteSurf_new(direct, segCleanPath, .5, 0, 10);
+            QString output1 = cmd->ExecuteSurf(direct, segCleanPath, .5, 0, 10);
+            mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(output1.toStdString());
             vtkSmartPointer<vtkDecimatePro> deci = vtkSmartPointer<vtkDecimatePro>::New();
             deci->SetInputData(shell->GetVtkPolyData());
             deci->SetTargetReduction(0.1);
@@ -661,7 +662,8 @@ void AtrialScarView::AutomaticAnalysis() {
             MITK_INFO << "[...][7.3] ClipVeinsImage finished .";
 
             MITK_INFO << "[AUTOMATIC_ANALYSIS][8] Create a mesh from clipped segmentation of veins";
-            mitk::Surface::Pointer LAShell = cmd->ExecuteSurf_new(direct, "PVeinsCroppedImage.nii", .5, 0, 10);
+            QString output2 = cmd->ExecuteSurf(direct, (direct + "/PVeinsCroppedImage.nii"), .5, 0, 10);
+            mitk::Surface::Pointer LAShell = mitk::IOUtil::Load<mitk::Surface>(output2.toStdString());
 
             MITK_INFO << "[AUTOMATIC_ANALYSIS][9] Clip the mitral valve";
             ImageTypeCHAR::Pointer mvImage = ImageTypeCHAR::New();
@@ -691,8 +693,9 @@ void AtrialScarView::AutomaticAnalysis() {
             mitk::IOUtil::Save(mitk::ImportItkImage(mvImage), (direct + "/prodMVI.nii").toStdString());
 
             // Make vtk of prodMVI
-            mitk::Surface::Pointer ClipperSurface = cmd->ExecuteSurf_new(direct, "prodMVI.nii", 0.5, 0, 10);
+            QString mviShellPath = cmd->ExecuteSurf(direct, "prodMVI.nii", 0.5, 0, 10);
             // Implement code from command line tool
+            mitk::Surface::Pointer ClipperSurface = mitk::IOUtil::Load<mitk::Surface>(mviShellPath.toStdString());
             vtkSmartPointer<vtkImplicitPolyDataDistance> implicitFn = vtkSmartPointer<vtkImplicitPolyDataDistance>::New();
             implicitFn->SetInput(ClipperSurface->GetVtkPolyData());
             vtkMTimeType mtime = implicitFn->GetMTime();
@@ -722,9 +725,9 @@ void AtrialScarView::AutomaticAnalysis() {
             clean->SetInputConnection(lrgRegion->GetOutputPort());
             clean->Update();
 
-            MITK_INFO << ("[...][9.4] Saving to file: " + direct + "/segmentation.vtk").toStdString();
+            MITK_INFO << ("[...][9.4] Saving to file: " + output2).toStdString();
             LAShell->SetVtkPolyData(clean->GetOutput());
-            mitk::IOUtil::Save(LAShell, (direct + "/segmentation.vtk").toStdString());
+            mitk::IOUtil::Save(LAShell, output2.toStdString());
 
             MITK_INFO << "[AUTOMATIC_ANALYSIS][10] Scar projection";
             int minStep = minStep_UI;
