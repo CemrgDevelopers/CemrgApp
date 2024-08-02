@@ -420,7 +420,11 @@ void AtrialScarView::AutomaticAnalysis() {
             MITK_INFO << "[UI] Creating list of thresholds";
             separated_thresh_list.removeLast();
             separated_thresh_list.removeLast();
-            separated_thresh_list = thresh_list.split(",", Qt::SkipEmptyParts);
+            #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+                separated_thresh_list = thresh_list.split(",", Qt::SkipEmptyParts);
+            #else
+                separated_thresh_list = thresh_list.split(",", QString::SkipEmptyParts);
+            #endif
             int listspaces = separated_thresh_list.removeAll(" ");
             int listduplicates = separated_thresh_list.removeDuplicates();
             separated_thresh_list.sort();
