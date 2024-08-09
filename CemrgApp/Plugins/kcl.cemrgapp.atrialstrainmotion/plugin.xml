@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin>
+
+  <extension point="org.blueberry.ui.views">
+    <view id="org.mitk.views.atrialstrainmotionview"
+          name="Cemrg Atrial Strain Motion"
+          class="AtrialStrainMotionView"
+          icon="resources/icon.xpm" />
+  </extension>
+
+</plugin>

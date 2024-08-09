@@ -71,4 +71,11 @@
       icon="resources/icon_research.xpm" />
   </extension>
 
+  <extension point="org.blueberry.ui.perspectives">
+    <perspective id="kcl.cemrgapp.CemrgAtrialStrainMotionPerspective"
+                 name="Cemrg Atrial Strain Motion"
+                 class="QmitkCemrgAtrialStrainMotionPerspective"
+                 icon="resources/icon_research.xpm" />
+  </extension>
+
 </plugin>

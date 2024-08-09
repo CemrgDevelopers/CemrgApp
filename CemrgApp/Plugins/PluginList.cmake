@@ -10,4 +10,5 @@ set(MITK_PLUGINS
   kcl.cemrgapp.mmeasurement:ON
   kcl.cemrgapp.scar:ON
   kcl.cemrgapp.wathca:ON
+  kcl.cemrgapp.atrialstrainmotion:ON
 )
