@@ -81,6 +81,8 @@ protected:
 protected slots:
   void DoImageProcessing();
 
+private:
+
   Ui::AtrialStrainMotionViewControls m_Controls;
 };
 

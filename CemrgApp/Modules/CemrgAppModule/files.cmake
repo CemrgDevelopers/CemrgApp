@@ -8,6 +8,7 @@ set(CPP_FILES
     CemrgAtriaClipper.cpp
     CemrgAtrialTools.cpp
     CemrgScarAdvanced.cpp
+    CemrgMultilabelSegmentationUtils.cpp
     CemrgTests.cpp
 )
 
@@ -24,6 +25,7 @@ set(MOC_H_FILES
   include/CemrgStrains.h
   include/CemrgPower.h
   include/CemrgScarAdvanced.h
+  include/CemrgMultilabelSegmentationUtils.h
 )
 
 set(RESOURCE_FILES
