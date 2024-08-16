@@ -41,34 +41,95 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 * 
 =========================================================================*/
 
-
+#include "kcl_cemrgapp_atrialstrainmotion_Activator.h"
+#include "AtrialStrainMotionView.h"
 
 // Blueberry
 #include <berryISelectionService.h>
 #include <berryIWorkbenchWindow.h>
 
-// Qmitk
-#include "kcl_cemrgapp_atrialstrainmotion_Activator.h"
-#include "AtrialStrainMotionView.h"
+//Micro services
+#include <usModuleRegistry.h>
+#ifdef _WIN32
+// _WIN32 = we're in windows
+#include <winsock2.h>
+#else
+// or linux/mac
+#include <arpa/inet.h>
+#endif
+
+//VTK
+#include <vtkFieldData.h>
+#include <vtkCleanPolyData.h>
+#include <vtkPolyDataNormals.h>
+#include <vtkPolyDataConnectivityFilter.h>
+#include <vtkWindowedSincPolyDataFilter.h>
+#include <vtkImplicitPolyDataDistance.h>
+#include <vtkBooleanOperationPolyDataFilter.h>
+#include <vtkClipPolyData.h>
+#include <vtkDecimatePro.h>
+
+//ITK
+#include <itkAddImageFilter.h>
+#include <itkRelabelComponentImageFilter.h>
+#include <itkConnectedComponentImageFilter.h>
+#include <itkImageRegionIteratorWithIndex.h>
+#include "itkLabelObject.h"
+#include "itkLabelMap.h"
+#include "itkLabelImageToLabelMapFilter.h"
+#include "itkLabelMapToLabelImageFilter.h"
+#include "itkLabelSelectionLabelMapFilter.h"
 
 // Qt
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QInputDialog>
+#include <QDirIterator>
+#include <QDate>
+#include <QFile>
 
-// mitk image
+// mitk
+#include <QmitkIOUtil.h>
 #include <mitkImage.h>
+#include <mitkLog.h>
+#include <mitkProgressBar.h>
+#include <mitkIDataStorageService.h>
+#include <mitkNodePredicateNot.h>
+#include <mitkNodePredicateProperty.h>
+#include <mitkDataStorageEditorInput.h>
+#include <mitkImageCast.h>
+#include <mitkITKImageImport.h>
+#include <mitkBoundingObject.h>
+#include <mitkCuboid.h>
+#include <mitkAffineImageCropperInteractor.h>
+#include <mitkImagePixelReadAccessor.h>
+#include <mitkUnstructuredGrid.h>
+#include <mitkManualSegmentationToSurfaceFilter.h>
+
+//CemrgAppModule
+#include <CemrgCommonUtils.h>
+#include <CemrgCommandLine.h>
+#include <CemrgMeasure.h>
+#include <CemrgScar3D.h>
+
 
 const std::string AtrialStrainMotionView::VIEW_ID = "org.mitk.views.atrialstrainmotionview";
 
 void AtrialStrainMotionView::SetFocus()
 {
-  m_Controls.button_step_1->setFocus();
+  m_Controls.segment_extract->setFocus();
 }
 
 void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
 {
   // create GUI widgets from the Qt Designer's .ui file
   m_Controls.setupUi(parent);
-  connect(m_Controls.button_step_1, &QPushButton::clicked, this, &AtrialStrainMotionView::DoImageProcessing);
+  // Step 1: Segment and Extract
+  connect(m_Controls.segment_extract, SIGNAL(clicked()), this, SLOT(SegmentExtract()));
+
+
+  // Set default variables
+  atrium = std::unique_ptr<CemrgAtrialTools>(new CemrgAtrialTools());
 }
 
 void AtrialStrainMotionView::OnSelectionChanged(berry::IWorkbenchPart::Pointer /*source*/,
@@ -80,13 +141,13 @@ void AtrialStrainMotionView::OnSelectionChanged(berry::IWorkbenchPart::Pointer /
     if (node.IsNotNull() && dynamic_cast<mitk::Image *>(node->GetData()))
     {
       m_Controls.labelWarning->setVisible(false);
-      m_Controls.button_step_1->setEnabled(true);
+      m_Controls.segment_extract->setEnabled(true);
       return;
     }
   }
 
   m_Controls.labelWarning->setVisible(true);
-  m_Controls.button_step_1->setEnabled(false);
+  m_Controls.segment_extract->setEnabled(false);
 }
 
 void AtrialStrainMotionView::DoImageProcessing()
@@ -128,4 +189,71 @@ void AtrialStrainMotionView::DoImageProcessing()
       // actually do something here...
     }
   }
+}
+
+bool AtrialStrainMotionView::RequestProjectDirectoryFromUser() {
+
+  bool succesfulAssignment = true;
+
+  //Ask the user for a dir to store data
+  if (directory.isEmpty()) {
+
+    MITK_INFO << "Directory is empty. Requesting user for directory.";
+    directory = QFileDialog::getExistingDirectory( NULL, "Open Project Directory",
+        mitk::IOUtil::GetProgramPath().c_str(),QFileDialog::ShowDirsOnly|QFileDialog::DontUseNativeDialog);
+
+    MITK_INFO << ("Directory selected:" + directory).toStdString();
+    atrium->SetWorkingDirectory(directory);
+
+    if (directory.isEmpty() || directory.simplified().contains(" ")) {
+      MITK_WARN << "Please select a project directory with no spaces in the path!";
+      QMessageBox::warning(NULL, "Attention", "Please select a project directory with no spaces in the path!");
+      directory = QString();
+      succesfulAssignment = false;
+    }//_if
+
+    if (succesfulAssignment){
+      QString now = QDate::currentDate().toString(Qt::ISODate);
+      QString logfilename = directory + "/afib_log" + now + ".log";
+      std::string logfname_str = logfilename.toStdString();
+
+      mitk::LoggingBackend::SetLogFile(logfname_str.c_str());
+      MITK_INFO << ("Changed logfile location to: " + logfilename).toStdString();
+    }
+
+  } else {
+    MITK_INFO << ("Project directory already set: " + directory).toStdString();
+  }//_if
+
+
+  return succesfulAssignment;
+}
+
+void AtrialStrainMotionView::SegmentExtract() {
+
+    MITK_INFO << "[AnalysisChoice]";
+    bool testRpdfu = RequestProjectDirectoryFromUser();
+    MITK_INFO(testRpdfu) << "Should continue";
+    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
+    MITK_INFO << "After directory selection checkup";
+
+    // TODO: select the first image and segment it
+    QString nifti_dir = directory + "/nifti/";
+    QString input_file = nifti_dir + "dcm-0.nii";
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+
+    MITK_INFO(QFile::copy(input_file, directory + "/dcm-0.nii")) << "QFile::Copy successful";
+    // MITK_INFO << successful;
+
+    // get pathToNifti file!
+    QFileInfo file(input_file);
+
+    cmd->SetUseDockerContainers(true);
+    QString pathToSegmentation = cmd->DockerCctaMultilabelSegmentation(directory, directory + "/dcm-0.nii", false);
+    MITK_INFO << pathToSegmentation;
+    // TODO: build a docker image for extracting LA
+
+
+
+
 }

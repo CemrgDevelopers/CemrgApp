@@ -110,6 +110,8 @@ public:
     std::string PrintFullCommand(QString command, QStringList arguments);
     bool ExecuteCommand(QString executableName, QStringList arguments, QString outputPath, bool isOutputFile = true);
 
+    QString DockerCctaMultilabelSegmentation(QString dir, QString path_to_f, bool saveas_nifti);
+
 protected slots:
 
     void UpdateStdText();

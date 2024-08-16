@@ -1413,3 +1413,32 @@ void CemrgCommandLine::FinishedAlert() {
     QString data = process->program() + " Completed!";
     panel->append(data);
 }
+
+QString CemrgCommandLine::DockerCctaMultilabelSegmentation(QString dir, QString path_to_f, bool saveas_nifti) {
+    SetDockerImage("cemrg/ccta:latest");
+    QString executablePath = "";
+#if defined(__APPLE__)
+    executablePath = "/usr/local/bin/";
+#endif
+    QString executableName = executablePath + "docker";
+    QDir home(dir);
+    QFileInfo fi(path_to_f);
+    QString outname = fi.baseName();
+    outname += "_label_maps.nii.gz";
+    QStringList arguments = GetDockerArguments(home.absolutePath());
+    arguments << "--filename" << home.relativeFilePath(path_to_f);
+    arguments << "--device" << "cpu";
+    if (saveas_nifti) {
+        arguments << "--saveas-nifti";
+    }
+    QString outPath = home.absolutePath() + "/" + outname;
+    bool successful = ExecuteCommand(executableName, arguments, outPath);
+    QString res="";
+    if (successful) {
+        MITK_INFO << "Successful mutilabel segmentation";
+        res = outPath;
+    } else {
+        MITK_WARN << "Unsuccessful multilabel segmentation";
+    }
+    return res;
+}

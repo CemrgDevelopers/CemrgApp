@@ -52,6 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui_AtrialStrainMotionViewControls.h"
 
+
+#include "CemrgAtrialTools.h"
 /**
   \brief AtrialStrainMotionView
 
@@ -67,6 +69,8 @@ class AtrialStrainMotionView : public QmitkAbstractView {
 
 public:
   static const std::string VIEW_ID;
+  bool RequestProjectDirectoryFromUser();
+
 
 protected:
   virtual void CreateQtPartControl(QWidget *parent) override;
@@ -77,11 +81,19 @@ protected:
   virtual void OnSelectionChanged(berry::IWorkbenchPart::Pointer source,
                                   const QList<mitk::DataNode::Pointer> &nodes) override;
 
+  Ui::AtrialStrainMotionViewControls m_Controls;
+
   /// \brief Called when the user clicks the GUI button
+
+
 protected slots:
   void DoImageProcessing();
+  void SegmentExtract();
 
-  Ui::AtrialStrainMotionViewControls m_Controls;
+
+private:
+  QString directory;
+  std::unique_ptr<CemrgAtrialTools> atrium;
 };
 
 #endif // AtrialStrainMotionView_h

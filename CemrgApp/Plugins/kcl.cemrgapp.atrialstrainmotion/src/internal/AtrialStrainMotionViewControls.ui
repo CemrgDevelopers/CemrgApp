@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>222</width>
-    <height>161</height>
+    <height>555</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -26,20 +26,14 @@
       <string notr="true">QLabel { color: rgb(255, 0, 0) }</string>
      </property>
      <property name="text">
-      <string>Please select an image!</string>
+      <string>Model Creation Pipeline</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QPushButton" name="button_step_1">
-     <property name="toolTip">
-      <string>Do image processing</string>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">text-align: left;</string>
-     </property>
+    <widget class="QPushButton" name="segment_extract">
      <property name="text">
-      <string>   Step 1: Do Something </string>
+      <string>Segment and Extract</string>
      </property>
     </widget>
    </item>
