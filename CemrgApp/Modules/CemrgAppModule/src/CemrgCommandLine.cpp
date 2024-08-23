@@ -421,7 +421,7 @@ QString CemrgCommandLine::ExecuteMorphologicalOperation(QString operation, QStri
     }
 }
 
-QString CemrgCommandLine::ExecuteExtractSurface(QString dir, QString segPath, QString outputPath,float th, int blur) {
+QString CemrgCommandLine::ExecuteExtractSurface(QString dir, QString segPath, QString outputPath, float th, int blur) {
 
     MITK_INFO << "[ATTENTION] Attempting Surface extraction.";
 
@@ -711,6 +711,7 @@ QString CemrgCommandLine::DockerDicom2Nifti(QString path2dicomfolder) {
 }
 
 QString CemrgCommandLine::DockerUniversalAtrialCoordinates(QString dir, QString uaccmd, QStringList fibreAtlas, QString meshname, QStringList cmdargs, QStringList landmarks, QString outnameext){
+	// this is cemrg/uac:latest
     SetDockerImageUac();
     QString executablePath;
 #if defined(__APPLE__)

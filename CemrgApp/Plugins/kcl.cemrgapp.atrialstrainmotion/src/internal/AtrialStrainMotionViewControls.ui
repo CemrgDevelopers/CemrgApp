@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>222</width>
+    <width>281</width>
     <height>555</height>
    </rect>
   </property>
@@ -26,14 +26,63 @@
       <string notr="true">QLabel { color: rgb(255, 0, 0) }</string>
      </property>
      <property name="text">
-      <string>Model Creation Pipeline</string>
+      <string>       Model Creation Pipeline</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="segment_extract">
      <property name="text">
-      <string>Segment and Extract</string>
+      <string>Segment and Extract LA</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="surface_mesh_smooth">
+     <property name="text">
+      <string>Surface Mesh and Smooth</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="button_3_imanalysis">
+     <property name="text">
+      <string>Analysis Selector</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="button_man4_2_postproc">
+     <property name="text">
+      <string>Postprocess Segmentation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="button_man5_idPV">
+     <property name="text">
+      <string>    Identify PVs</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="button_man6_labelmesh">
+     <property name="text">
+      <string>Create Labelled Mesh</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="button_auto4_meshpreproc">
+     <property name="text">
+      <string>Mesh Preprocessing</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="button_man8_clipPV">
+     <property name="text">
+      <string>Clip PV</string>
      </property>
     </widget>
    </item>

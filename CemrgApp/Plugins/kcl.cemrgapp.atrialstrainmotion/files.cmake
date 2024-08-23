@@ -2,18 +2,37 @@ set(SRC_CPP_FILES
 
 )
 
+include_directories(../kcl.cemrgapp.atrialfibres/src/internal)
+
 set(INTERNAL_CPP_FILES
-  kcl_cemrgapp_atrialstrainmotion_Activator.cpp
-  AtrialStrainMotionView.cpp
+        kcl_cemrgapp_atrialstrainmotion_Activator.cpp
+        AtrialStrainMotionView.cpp
+        ../../../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresClipperView.cpp
 )
 
 set(UI_FILES
         src/internal/AtrialStrainMotionViewControls.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresViewUIAnalysisSelector.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresViewUIMeshing.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresClipperViewControls.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresClipperViewLabels.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresClipperViewUICorridor.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresClipperViewUIRadius.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresViewControls.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresViewUIEditLabels.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresViewUIUacSelector.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresViewUIRemesh.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresViewUIConvert.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresLandmarksViewRough.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresLandmarksViewRough.ui
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresVisualiseViewControls.ui
+        ../kcl.cemrgapp.scar/src/internal/AtrialScarViewUIcemrgnet.ui
 )
 
 set(MOC_H_FILES
         src/internal/kcl_cemrgapp_atrialstrainmotion_Activator.h
         src/internal/AtrialStrainMotionView.h
+        ../kcl.cemrgapp.atrialfibres/src/internal/AtrialFibresClipperView.h
 )
 
 # list of resource files which can be used by the plug-in

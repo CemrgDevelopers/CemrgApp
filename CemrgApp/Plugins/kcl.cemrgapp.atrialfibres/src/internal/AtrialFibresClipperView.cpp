@@ -34,6 +34,7 @@ PURPOSE.  See the above copyright notices for more information.
 // Qmitk
 #include <mitkImage.h>
 #include <mitkIOUtil.h>
+#include <QmitkIOUtil.h>
 #include <mitkImageCast.h>
 #include <mitkITKImageImport.h>
 #include <mitkProgressBar.h>
@@ -86,6 +87,9 @@ PURPOSE.  See the above copyright notices for more information.
 #include <QFile>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QFileDialog>
+#include <QInputDialog>
+#include <QDir>
 
 // CemrgAppModule
 #include <CemrgAtriaClipper.h>
@@ -204,6 +208,15 @@ void AtrialFibresClipperView::SetDirectoryFile(const QString directory, const QS
 
 void AtrialFibresClipperView::iniPreSurf() {
     //Find the selected node
+	if (AtrialFibresClipperView::directory.isEmpty() || AtrialFibresClipperView::fileName.isEmpty()) {
+		QString fileNamePath = QFileDialog::getOpenFileName(NULL, "Open mesh file (segmentation.vtk)",
+            directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
+		QFileInfo fi(fileNamePath);
+
+		AtrialFibresClipperView::fileName = fi.fileName();
+		AtrialFibresClipperView::directory = fi.absolutePath();
+	}
+
     QString path = AtrialFibresClipperView::directory + "/" + AtrialFibresClipperView::fileName;
     mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(path.toStdString());
 

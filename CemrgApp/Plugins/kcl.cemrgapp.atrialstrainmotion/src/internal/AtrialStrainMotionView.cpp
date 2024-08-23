@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "kcl_cemrgapp_atrialstrainmotion_Activator.h"
 #include "AtrialStrainMotionView.h"
+#include "AtrialFibresClipperView.h"
 
 // Blueberry
 #include <berryISelectionService.h>
@@ -111,6 +112,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CemrgCommandLine.h>
 #include <CemrgMeasure.h>
 #include <CemrgScar3D.h>
+#include "CemrgMultilabelSegmentationUtils.h"
 
 
 const std::string AtrialStrainMotionView::VIEW_ID = "org.mitk.views.atrialstrainmotionview";
@@ -126,16 +128,33 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
   m_Controls.setupUi(parent);
   // Step 1: Segment and Extract
   connect(m_Controls.segment_extract, SIGNAL(clicked()), this, SLOT(SegmentExtract()));
+  // Step 2: Create Surface mesh and smooth it
+  connect(m_Controls.surface_mesh_smooth, SIGNAL(clicked()), this, SLOT(SurfaceMeshSmooth()));
+  // UAC pipeline, starting from step 3
+  connect(m_Controls.button_3_imanalysis, SIGNAL(clicked()), this, SLOT(AnalysisChoice()));
+  // Post processing
+  m_Controls.button_man4_2_postproc->setVisible(false);
+  connect(m_Controls.button_man4_2_postproc, SIGNAL(clicked()), this, SLOT(SegmentationPostprocessing()));
+  // Identify PVs
+  connect(m_Controls.button_man5_idPV, SIGNAL(clicked()), this, SLOT(IdentifyPV()));
 
 
   // Set default variables
   atrium = std::unique_ptr<CemrgAtrialTools>(new CemrgAtrialTools());
+  tagName = "Labelled";
+  uiSelector_pipeline = 0;
+  uiSelector_imgauto_skipCemrgNet = false;
+  uiSelector_imgauto_skipLabel = false;
+  uiSelector_img_scar = false;
+  uiSelector_man_useCemrgNet = false;
+
 }
 
 void AtrialStrainMotionView::OnSelectionChanged(berry::IWorkbenchPart::Pointer /*source*/,
-                                                const QList<mitk::DataNode::Pointer> &nodes)
+                                                const QList<mitk::DataNode::Pointer>& /*nodes*/)
 {
   // iterate all selected objects, adjust warning visibility
+  /*
   foreach (mitk::DataNode::Pointer node, nodes)
   {
     if (node.IsNotNull() && dynamic_cast<mitk::Image *>(node->GetData()))
@@ -147,7 +166,9 @@ void AtrialStrainMotionView::OnSelectionChanged(berry::IWorkbenchPart::Pointer /
   }
 
   m_Controls.labelWarning->setVisible(true);
-  m_Controls.segment_extract->setEnabled(false);
+  m_Controls.segment_extract->setEnabled(true);
+
+   */
 }
 
 void AtrialStrainMotionView::DoImageProcessing()
@@ -191,6 +212,350 @@ void AtrialStrainMotionView::DoImageProcessing()
   }
 }
 
+bool AtrialStrainMotionView::GetUserAnalysisSelectorInputs(){
+    MITK_INFO << "[GetUserAnalysisSelectorInputs]";
+    QString metadata = Path("UCT_CT/prodMetadata.txt");
+    bool userInputAccepted=false;
+
+    if(QFile::exists(metadata)){
+        std::ifstream fi(metadata.toStdString());
+        fi >> uiSelector_pipeline;
+        fi >> uiSelector_imgauto_skipCemrgNet;
+        fi >> uiSelector_imgauto_skipLabel;
+        fi >> uiSelector_man_useCemrgNet;
+        fi >> uiSelector_img_scar;
+        fi.close();
+
+        userInputAccepted=true;
+
+        MITK_INFO(LoadSurfaceChecks()) << ("Loaded surface" + tagName).toStdString();
+
+    }
+
+    if(!userInputAccepted){
+        uiSelector_img_scar = 0;
+        uiSelector_pipeline = 2;
+        uiSelector_img_scar = false;
+
+        std::ofstream fo(metadata.toStdString());
+        fo << uiSelector_pipeline << std::endl;
+        fo << uiSelector_imgauto_skipCemrgNet << std::endl;
+        fo << uiSelector_imgauto_skipLabel << std::endl;
+        fo << uiSelector_man_useCemrgNet << std::endl;
+        fo << uiSelector_img_scar << std::endl;
+        fo.close();
+
+        userInputAccepted=true;
+
+    }
+    SetLgeAnalysis(uiSelector_img_scar);
+
+    return userInputAccepted;
+}
+
+int AtrialStrainMotionView::Ask(std::string title, std::string msg){
+    return QMessageBox::question(NULL, title.c_str(), msg.c_str(), QMessageBox::Yes, QMessageBox::No);
+}
+
+bool AtrialStrainMotionView::LoadSurfaceChecks(){
+    bool success = true;
+    QString prodPath = directory + "/UCT_CT/" + tagName + ".vtk";
+    UserLoadSurface();
+    MITK_INFO << ("[LoadSurfaceChecks] Loading surface: " + prodPath).toStdString();
+
+    return success;
+}
+
+void AtrialStrainMotionView::SetLgeAnalysis(bool b){
+    analysisOnLge = b;
+    // m_Controls.button_z_scar->setEnabled(b);
+}
+
+void AtrialStrainMotionView::CheckLoadedMeshQuality(){
+    QString prodPath = directory + "/UCT_CT/";
+    QString meshinput = prodPath + tagName + ".vtk";
+
+    mitk::Surface::Pointer surface = mitk::IOUtil::Load<mitk::Surface>(meshinput.toStdString());
+
+    vtkSmartPointer<vtkPolyDataConnectivityFilter> cf = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
+    cf->ScalarConnectivityOff();
+    cf->SetInputData(surface->GetVtkPolyData());
+    cf->SetExtractionModeToAllRegions();
+    cf->Update();
+
+    int numRegions = cf->GetNumberOfExtractedRegions();
+
+    if(numRegions>1){
+        resurfaceMesh = true;
+        MITK_INFO << ("Number of regions in mesh: " + QString::number(numRegions)).toStdString();
+        cf->SetExtractionModeToSpecifiedRegions();
+        cf->Modified();
+        cf->Update();
+
+        for (int ix = 0; ix < numRegions; ix++) {
+
+            cf->InitializeSpecifiedRegionList();
+            cf->AddSpecifiedRegion(ix);
+            cf->Modified();
+            cf->Update();
+
+            vtkSmartPointer<vtkPolyData> temp = cf->GetOutput();
+            surface->SetVtkPolyData(cf->GetOutput());
+            QString nameExt = "connectivityTest_"+QString::number(ix)+".vtk";
+            mitk::IOUtil::Save(surface, (prodPath+nameExt).toStdString());
+        }
+    }
+}
+
+void AtrialStrainMotionView::SetAutomaticModeButtons(bool b){
+    m_Controls.button_auto4_meshpreproc->setVisible(b);
+    // m_Controls.button_auto5_clipPV->setVisible(b);
+
+    if(b){
+        // m_Controls.button_0_landmarks->setText("    Step6: Select Landmarks");
+        // m_Controls.button_0_calculateUac->setText("    Step7: Calculate UAC");
+        // m_Controls.button_0_fibreMapUac->setText("    Step8: Fibre Mapping");
+    }
+}
+
+void AtrialStrainMotionView::UserLoadSurface(){
+    QString newpath = directory + "/UCT_CT/LA_msh.vtk";
+    SetTagNameFromPath(newpath);
+    CheckLoadedMeshQuality();
+}
+
+QString AtrialStrainMotionView::GetFilePath(QString nameSubstring, QString extension){
+    QString result = "";
+    QDirIterator searchit(directory, QDirIterator::Subdirectories);
+    while(searchit.hasNext()) {
+        QFileInfo searchfinfo(searchit.next());
+        if (searchfinfo.fileName().contains(extension, Qt::CaseSensitive)) {
+            if (searchfinfo.fileName().contains((nameSubstring), Qt::CaseSensitive))
+                result = searchfinfo.absoluteFilePath();
+        }
+    }//_while
+
+    return result;
+}
+
+void AtrialStrainMotionView::SetTagNameFromPath(QString path){
+    QFileInfo fi(path);
+    tagName = fi.baseName();
+}
+
+void AtrialStrainMotionView::AutomaticAnalysis(){
+    MITK_INFO << "TIMELOG|AutomaticAnalysis| Start";
+    QString prodPath = directory + "/";
+    if(cnnPath.isEmpty()){
+        if(uiSelector_imgauto_skipCemrgNet){
+            cnnPath = QFileDialog::getOpenFileName(NULL, "Open Automatic Segmentation file",
+            directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
+            MITK_INFO << ("Loaded file: " + cnnPath).toStdString();
+        } else{
+            QList<mitk::DataNode::Pointer> nodes = this->GetDataManagerSelection();
+            if (nodes.size() > 1) {
+                QMessageBox::warning(NULL, "Attention",
+                "Please select the CEMRA image from the Data Manager to segment!");
+                return;
+            }
+
+            QString mraPath = prodPath + "test.nii";
+            if(nodes.size() == 0){
+                MITK_INFO << "Searching MRA files";
+
+                QString imagePath = QFileDialog::getOpenFileName(NULL, "Open MRA image file",
+                directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
+
+                if(!QFile::exists(mraPath)){
+                    if(!QFile::copy(imagePath, mraPath)){
+                        MITK_ERROR << "MRA could not be prepared for automatic segmentation.";
+                        return;
+                    }
+                }
+            } else if(nodes.size() == 1){
+                mitk::BaseData::Pointer data = nodes.at(0)->GetData();
+                bool successfulImageLoading = false;
+                if (data) {
+                    mitk::Image::Pointer image = dynamic_cast<mitk::Image*>(data.GetPointer());
+                    if (image) {
+                        mitk::IOUtil::Save(image, mraPath.toStdString());
+                        successfulImageLoading = true;
+                    }
+                }
+
+                if(!successfulImageLoading){
+                    MITK_ERROR << "MRA image could not be loaded";
+                    return;
+                }
+            }
+
+            MITK_INFO << "[AUTOMATIC_PIPELINE] CemrgNet (auto segmentation)";
+            std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+            cmd->SetUseDockerContainers(true);
+            cnnPath = cmd->DockerCemrgNetPrediction(mraPath);
+            remove(mraPath.toStdString().c_str());
+        }
+    }
+    CemrgCommonUtils::RoundPixelValues(cnnPath);
+    QFileInfo fi(cnnPath);
+    if(directory.compare(fi.absolutePath())==0){
+        MITK_INFO << ("[ATTENTION] Changing working directory to: " + fi.absolutePath());
+        directory = fi.absolutePath();
+    }
+    MITK_INFO << ("Directory: "+ directory + " segmentation name: " + fi.baseName()).toStdString();
+
+    MITK_INFO << "[AUTOMATIC_PIPELINE] Clean Segmentation";
+    ImageType::Pointer segImage = atrium->CleanAutomaticSegmentation(directory, (fi.baseName()+".nii"), "prodClean.nii");
+    cnnPath = prodPath + "LA.nii";
+    mitk::IOUtil::Save(mitk::ImportItkImage(segImage), cnnPath.toStdString());
+    cnnPath = UserIncludeLgeAnalysis(cnnPath, segImage);
+
+    mitk::IOUtil::Load(cnnPath.toStdString(), *this->GetDataStorage());
+
+    MITK_INFO << "[AUTOMATIC_PIPELINE] Assign PV labels automatically";
+    ImageType::Pointer tagAtriumAuto = atrium->AssignAutomaticLabels(segImage, directory);
+
+    MITK_INFO << "[AUTOMATIC_PIPELINE] Create Mesh";
+    //Ask for user input to set the parameters
+    bool userInputsAccepted = GetUserMeshingInputs();
+
+    if(userInputsAccepted){
+        std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+        cmd->SetUseDockerContainers(true);
+
+        cmd->ExecuteSurf(directory, Path("prodClean.nii"), "close", uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
+        atrium->ProjectTagsOnExistingSurface(tagAtriumAuto, directory, tagName+".vtk");
+
+        MITK_INFO << "[AUTOMATIC_PIPELINE] Add the mesh to storage";
+        QString path = prodPath + tagName + ".vtk";
+
+        std::cout << "Path to load: " << path.toStdString() <<'\n';
+        std::cout << "tagName: " << tagName.toStdString() << '\n';
+        mitk::Surface::Pointer surface = mitk::IOUtil::Load<mitk::Surface>(path.toStdString());
+
+        std::string meshName = tagName.toStdString() + "-Mesh";
+        CemrgCommonUtils::AddToStorage(surface, meshName, this->GetDataStorage());
+
+        std::string msg = "Created labelled mesh - Complete\n\n";
+        msg += "Automatic labels were assigned to the mesh. \n";
+        msg += "To set default labels: \n\n";
+        msg += "+ Identify the LAA and PVs in Step4: Mesh Preprocessing, and set the clippers.\n";
+        msg += "+ Click Step5: Clip PVs and MV (this step will set the correct labels)";
+        QMessageBox::information(NULL, "Automatic Labelling complete", msg.c_str());
+    }
+    MITK_INFO << "TIMELOG|AutomaticAnalysis| End";
+}
+
+void AtrialStrainMotionView::SetManualModeButtons(bool b){
+    //Set visibility of buttons
+    // m_Controls.button_man4_segmentation->setVisible(b);
+    m_Controls.button_man5_idPV->setVisible(b);
+    m_Controls.button_man6_labelmesh->setVisible(b);
+    // m_Controls.button_man7_clipMV->setVisible(b);
+    m_Controls.button_man8_clipPV->setVisible(b);
+
+    if(b){
+        m_Controls.button_auto4_meshpreproc->setText("    Step7: Mesh Preprocessing");
+        // m_Controls.button_0_landmarks->setText("    Step10: Select Landmarks");
+        // m_Controls.button_0_calculateUac->setText("    Step11: Calculate UAC");
+        // m_Controls.button_0_fibreMapUac->setText("    Step12: Fibre Mapping");
+    } else{
+        m_Controls.button_auto4_meshpreproc->setText("    Step4: Mesh Preprocessing");
+    }
+
+}
+
+QString AtrialStrainMotionView::UserIncludeLgeAnalysis(QString segPath, ImageType::Pointer segImage){
+    // uiSelector_img_scar
+    QString prodPath = directory + "/";
+    QString resultString = segPath;
+
+    // int replyLAreg = Ask("Register to LGE", "Move to LGE space and prepare for scar projection?");
+    if(uiSelector_img_scar){
+        QFileInfo fi(segPath);
+        QString segRegPath = prodPath + fi.baseName() + "-reg." + fi.suffix();
+
+        MITK_INFO << "search for lge and mra";
+        QString lgePath = GetFilePath("dcm-LGE", ".nii");
+        QString mraPath = GetFilePath("dcm-MRA", ".nii");
+
+        if(lgePath.isEmpty()){
+            lgePath = QFileDialog::getOpenFileName(NULL, "Open LGE image file",
+            directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
+        }
+        if(mraPath.isEmpty()){
+            mraPath = QFileDialog::getOpenFileName(NULL, "Open MRA image file",
+            directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
+        }
+        // register and transform
+        std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+        cmd->ExecuteRegistration(directory, lgePath, mraPath); // rigid.dof is the default name
+        cmd->ExecuteTransformation(directory, segPath, segRegPath);
+
+        segImage = atrium->LoadImage(segRegPath);
+
+        resultString = segRegPath;
+        tagName += "-reg";
+
+        SetLgeAnalysis(true);
+    }
+
+    return resultString;
+}
+
+bool AtrialStrainMotionView::GetUserMeshingInputs(){
+    bool userInputAccepted=false;
+
+    if(userHasSetMeshingParams){
+        QString msg = "The parameters have been set already, change them?\n";
+        msg += "close iter= " + QString::number(uiMesh_iter) + '\n';
+        msg += "threshold= " + QString::number(uiMesh_th) + '\n';
+        msg += "blur= " + QString::number(uiMesh_bl) + '\n';
+        msg += "smooth iter= " + QString::number(uiMesh_smth);
+
+        if(Ask("Question", msg.toStdString())==QMessageBox::Yes){
+            userHasSetMeshingParams=false;
+            return GetUserMeshingInputs();
+        } else{
+            userInputAccepted=true;
+        }
+    } else{
+        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
+        m_UIMeshing.setupUi(inputs);
+        connect(m_UIMeshing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
+        connect(m_UIMeshing.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
+        int dialogCode = inputs->exec();
+
+        //Act on dialog return code
+        if (dialogCode == QDialog::Accepted) {
+
+            bool ok1, ok2, ok3, ok4;
+            uiMesh_th= m_UIMeshing.lineEdit_1->text().toDouble(&ok1);
+            uiMesh_bl= m_UIMeshing.lineEdit_2->text().toDouble(&ok2);
+            uiMesh_smth= m_UIMeshing.lineEdit_3->text().toDouble(&ok3);
+            uiMesh_iter= m_UIMeshing.lineEdit_4->text().toDouble(&ok4);
+
+            //Set default values
+            if (!ok1 || !ok2 || !ok3 || !ok4)
+            QMessageBox::warning(NULL, "Attention", "Reverting to default parameters!");
+            if (!ok1) uiMesh_th=0.5;
+            if (!ok2) uiMesh_bl=0.0;
+            if (!ok3) uiMesh_smth=10;
+            if (!ok4) uiMesh_iter=0;
+
+            inputs->deleteLater();
+            userInputAccepted=true;
+            userHasSetMeshingParams=true;
+
+        } else if (dialogCode == QDialog::Rejected) {
+            inputs->close();
+            inputs->deleteLater();
+        }//_if
+    }
+
+    return userInputAccepted;
+}
+
 bool AtrialStrainMotionView::RequestProjectDirectoryFromUser() {
 
   bool succesfulAssignment = true;
@@ -230,30 +595,155 @@ bool AtrialStrainMotionView::RequestProjectDirectoryFromUser() {
 }
 
 void AtrialStrainMotionView::SegmentExtract() {
-
-    MITK_INFO << "[AnalysisChoice]";
-    bool testRpdfu = RequestProjectDirectoryFromUser();
-    MITK_INFO(testRpdfu) << "Should continue";
     if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
-    MITK_INFO << "After directory selection checkup";
 
-    // TODO: select the first image and segment it
-    QString nifti_dir = directory + "/nifti/";
-    QString input_file = nifti_dir + "dcm-0.nii";
+    // copy the first image and segment it
+    QDir nifti_dir = QDir(directory + "/nifti/");
+    QString input_file_name = nifti_dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot)[0];
+    QString input_file_path = directory + "/" + input_file_name;
+    MITK_INFO << input_file_path.toStdString();
+
+    MITK_INFO(QFile::copy(nifti_dir.absolutePath() + "/" + input_file_name, input_file_path)) << "Copied " << input_file_name;
+
     std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
-
-    MITK_INFO(QFile::copy(input_file, directory + "/dcm-0.nii")) << "QFile::Copy successful";
-    // MITK_INFO << successful;
-
-    // get pathToNifti file!
-    QFileInfo file(input_file);
-
     cmd->SetUseDockerContainers(true);
-    QString pathToSegmentation = cmd->DockerCctaMultilabelSegmentation(directory, directory + "/dcm-0.nii", false);
+    QString pathToSegmentation = cmd->DockerCctaMultilabelSegmentation(directory, input_file_path, false);
     MITK_INFO << pathToSegmentation;
-    // TODO: build a docker image for extracting LA
 
+    // extract LA
+    mitk::Image::Pointer segmentation = mitk::IOUtil::Load<mitk::Image>(pathToSegmentation.toStdString());
 
+    if (!segmentation) return ;
 
+    // create CemrgMultilabelSegmntation (cmls)
+    std::unique_ptr<CemrgMultilabelSegmentationUtils> cmls(new CemrgMultilabelSegmentationUtils());
+    segmentation = cmls->ReplaceLabel(segmentation, 8, 4);
+    segmentation = cmls->ReplaceLabel(segmentation, 9, 4);
+    segmentation = cmls->ReplaceLabel(segmentation, 10, 4);
+    for (int i = 1; i <= 7; i++) {
+        if (i != 4)
+            segmentation = cmls->ReplaceLabel(segmentation, i, 0);
+    }
 
+    QString la_path = directory + "/LA.nii";
+    mitk::IOUtil::Save(segmentation, la_path.toStdString());
+
+    // CemrgCommonUtils::AddToStorage(segmentation, "LA", this->GetDataStorage());
+
+}
+
+void AtrialStrainMotionView::SurfaceMeshSmooth() {
+
+    if (!RequestProjectDirectoryFromUser()) return;
+
+    QString la_path = directory + "/LA.nii";
+    QString la_msh_path = directory + "/LA_msh.vtk";
+    QString la_msh_smth_path = directory + "/LA_msh_smth.vtk";
+
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    // cmd->ExecuteSurf(directory, directory + "/LA.nii", "close", 0, 0.5, 0, 100);
+    cmd->ExecuteExtractSurface(directory, la_path, la_msh_path, 0.5, 0);
+    // cmd->ExecuteSmoothSurface(directory, la_msh_path, la_msh_smth_path, 100);
+
+    mitk::Surface::Pointer la_msh = mitk::IOUtil::Load<mitk::Surface>(la_msh_path.toStdString());
+    CemrgCommonUtils::AddToStorage(la_msh, "la_msh", this->GetDataStorage());
+
+    QDir q_directory(directory);
+    q_directory.mkdir("UCT_CT") ? MITK_INFO << "UCT_CT created" : MITK_INFO << "UCT_CT exists";
+    q_directory.mkdir("UCT_CT_aligned") ? MITK_INFO << "UCT_CT_aligned created" : MITK_INFO << "UCT_CT_aligned exists";
+
+    MITK_INFO(QFile::copy(la_msh_path, directory + "/UCT_CT" + "/LA_msh.vtk")) << "Copied LA_msh.vtk";
+
+    // ~/Software/CemrgApp_v2.1/bin/MLib/extract-surface ${basePath}/S-0046/nifti/LA.nii ${basePath}/S-0046/nifti/LA-msh.vtk -isovalue 0.5 -blur 0 -ascii -verbose 3
+    // ~/Software/CemrgApp_v2.1/bin/MLib/smooth-surface ${basePath}/S-0046/nifti/LA-msh.vtk ${basePath}/S-0046/nifti/LA-msh-smth.vtk -iterations 100
+}
+
+void AtrialStrainMotionView::AnalysisChoice(){
+    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
+
+    bool userInputsAccepted = GetUserAnalysisSelectorInputs();
+    uiSelector_pipeline = 2;
+    if(userInputsAccepted){
+        // uiSelector_pipeline; // =0 (imgAuto), =1 (imgManual), =2 (surf)
+        SetAutomaticPipeline(uiSelector_pipeline==0); // Image Pipeline (automatic)
+        MITK_INFO << "uiSelector_pipeline " << uiSelector_pipeline;
+
+        MITK_INFO << "[AnalysisChoice] Analysis starting from surface";
+        SetAutomaticPipeline(false);
+
+        // Load surface mesh
+        if(!LoadSurfaceChecks()) return;
+
+        // Create fake segmentation image for labelling
+        double origin[3] = {0, 0, 0};
+        double spacing[3] = {1, 1, 1};
+        CemrgCommonUtils::SaveImageFromSurfaceMesh(Path("UCT_CT/" + tagName + ".vtk"), origin, spacing);
+        CemrgCommonUtils::SavePadImageWithConstant(Path("UCT_CT/" + tagName + ".nii"));
+
+        mitk::Image::Pointer im = CemrgCommonUtils::ReturnBinarised(mitk::IOUtil::Load<mitk::Image>(StdStringPath("UCT_CT/" + tagName+".nii")));
+        // CemrgCommonUtils::Binarise(im);
+        mitk::IOUtil::Save(im, StdStringPath("UCT_CT/" + tagName+".nii"));
+        CemrgCommonUtils::AddToStorage(im, tagName.toStdString(), this->GetDataStorage());
+
+        SetManualModeButtonsOn();
+        SetAutomaticModeButtonsOff();
+        // m_Controls.button_man4_segmentation->setEnabled(false);
+        m_Controls.button_auto4_meshpreproc->setVisible(true);
+        m_Controls.button_man4_2_postproc->setVisible(true);
+    }
+}
+
+void AtrialStrainMotionView::SegmentationPostprocessing(){
+    this->GetSite()->GetPage()->ShowView("org.mitk.views.segmentationutilities");
+}
+
+// TODO: AtrialFibresClipperView.h: No such file or directory
+void AtrialStrainMotionView::IdentifyPV(){
+    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
+    QString path = Path("UCT_CT/") + "segmentation.vtk";
+
+    if(!QFileInfo::exists(path)){
+        // Select segmentation from data manager
+        QList<mitk::DataNode::Pointer> nodes = this->GetDataManagerSelection();
+        if (nodes.size() != 1) {
+            QMessageBox::warning(NULL, "Attention",
+                "Please select the loaded or created segmentation to create a surface!");
+            return;
+        }
+
+        //Find the selected node
+        mitk::DataNode::Pointer segNode = nodes.at(0);
+        mitk::BaseData::Pointer data = segNode->GetData();
+        if (data) {
+            mitk::Image::Pointer image = dynamic_cast<mitk::Image*>(data.GetPointer());
+            if (image) {
+
+                MITK_INFO << "Mesh and save as 'segmentation.vtk'";
+                bool userInputsAccepted = GetUserMeshingInputs();
+                if(userInputsAccepted){
+
+                    MITK_INFO << "[IdentifyPV] Create clean segmentation";
+                    mitk::IOUtil::Save(image, StdStringPath("UCT_CT/prodClean.nii"));
+
+                    MITK_INFO << "[IdentifyPV] Create surface file and projecting tags";
+                    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+                    cmd->SetUseDockerContainers(true);
+
+                    cmd->ExecuteSurf(Path("UCT_CT"), Path("UCT_CT/prodClean.nii"), "close", uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
+
+                    //Add the mesh to storage
+                    std::string meshName = segNode->GetName() + "-Mesh";
+                    CemrgCommonUtils::AddToStorage(
+                        CemrgCommonUtils::LoadVTKMesh(path.toStdString()), meshName, this->GetDataStorage());
+                }
+            }
+        }
+    }
+
+    MITK_INFO << "Loading org.mitk.views.atrialfibresclipperview";
+    this->GetSite()->GetPage()->ResetPerspective();
+
+    // AtrialFibresClipperView::SetDirectoryFile(Path("UCT_CT"), "segmentation.vtk", automaticPipeline);
+
+    this->GetSite()->GetPage()->ShowView("org.mitk.views.atrialfibresclipperview");
 }

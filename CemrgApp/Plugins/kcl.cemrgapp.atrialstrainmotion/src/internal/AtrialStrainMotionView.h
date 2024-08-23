@@ -51,6 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QmitkAbstractView.h>
 
 #include "ui_AtrialStrainMotionViewControls.h"
+#include "ui_AtrialFibresViewUIAnalysisSelector.h"
+#include "ui_AtrialFibresViewUIMeshing.h"
+
 
 
 #include "CemrgAtrialTools.h"
@@ -70,7 +73,28 @@ class AtrialStrainMotionView : public QmitkAbstractView {
 public:
   static const std::string VIEW_ID;
   bool RequestProjectDirectoryFromUser();
+  bool GetUserAnalysisSelectorInputs();
+  void SetAutomaticModeButtons(bool b);
+  void AutomaticAnalysis();
+  void SetManualModeButtons(bool b);
+  bool GetUserMeshingInputs();
 
+  inline QString Path(QString fnameExt=""){return (directory+"/"+fnameExt);};
+  inline std::string StdStringPath(QString fnameExt=""){return (Path(fnameExt).toStdString());};
+  inline void SetAutomaticPipeline(bool isAuto){automaticPipeline=isAuto;};
+  inline void SetManualModeButtonsOn(){SetManualModeButtons(true);};
+  inline void SetManualModeButtonsOff(){SetManualModeButtons(false);};
+  inline void SetAutomaticModeButtonsOn(){SetAutomaticModeButtons(true);};
+  inline void SetAutomaticModeButtonsOff(){SetAutomaticModeButtons(false);};
+
+  int Ask(std::string title, std::string msg);
+  bool LoadSurfaceChecks();
+  void SetLgeAnalysis(bool b);
+  void UserLoadSurface();
+  QString GetFilePath(QString type, QString extension);
+  void CheckLoadedMeshQuality();
+  void SetTagNameFromPath(QString path);
+  QString UserIncludeLgeAnalysis(QString segPath, ImageType::Pointer seg);
 
 protected:
   virtual void CreateQtPartControl(QWidget *parent) override;
@@ -82,6 +106,8 @@ protected:
                                   const QList<mitk::DataNode::Pointer> &nodes) override;
 
   Ui::AtrialStrainMotionViewControls m_Controls;
+  Ui::AtrialFibresViewUIAnalysisSelector m_UISelector;
+  Ui::AtrialFibresViewUIMeshing m_UIMeshing;
 
   /// \brief Called when the user clicks the GUI button
 
@@ -89,11 +115,19 @@ protected:
 protected slots:
   void DoImageProcessing();
   void SegmentExtract();
+  void SurfaceMeshSmooth();
+  void AnalysisChoice();
+  void SegmentationPostprocessing();
+  void IdentifyPV();
 
 
 private:
-  QString directory;
+  double uiMesh_th, uiMesh_bl, uiMesh_smth, uiMesh_iter;
+  QString directory, tagName, cnnPath;
   std::unique_ptr<CemrgAtrialTools> atrium;
+  int uiSelector_pipeline;
+  bool automaticPipeline, analysisOnLge, resurfaceMesh, userHasSetMeshingParams;
+  bool uiSelector_imgauto_skipCemrgNet, uiSelector_imgauto_skipLabel, uiSelector_img_scar, uiSelector_man_useCemrgNet;
 };
 
 #endif // AtrialStrainMotionView_h
