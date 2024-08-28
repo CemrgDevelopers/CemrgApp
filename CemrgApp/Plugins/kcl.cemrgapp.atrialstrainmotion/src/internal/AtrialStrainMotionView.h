@@ -119,7 +119,10 @@ protected slots:
   void AnalysisChoice();
   void SegmentationPostprocessing();
   void IdentifyPV();
-
+  void CreateLabelledMesh();
+  void MeshPreprocessing();
+  void ClipperPV();
+  void ClipperMV();
 
 private:
   double uiMesh_th, uiMesh_bl, uiMesh_smth, uiMesh_iter;

@@ -33,56 +33,56 @@
    <item>
     <widget class="QPushButton" name="segment_extract">
      <property name="text">
-      <string>Segment and Extract LA</string>
+      <string>1. Segment and Extract LA</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="surface_mesh_smooth">
      <property name="text">
-      <string>Surface Mesh and Smooth</string>
+      <string>2. Surface Mesh and Smooth</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_3_imanalysis">
      <property name="text">
-      <string>Analysis Selector</string>
+      <string>3. Analysis Selector</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man4_2_postproc">
      <property name="text">
-      <string>Postprocess Segmentation</string>
+      <string>4. Postprocess Segmentation</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man5_idPV">
      <property name="text">
-      <string>    Identify PVs</string>
+      <string>5. Identify PVs</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man6_labelmesh">
      <property name="text">
-      <string>Create Labelled Mesh</string>
+      <string>6. Create Labelled Mesh</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_auto4_meshpreproc">
      <property name="text">
-      <string>Mesh Preprocessing</string>
+      <string>7. Mesh Preprocessing</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man8_clipPV">
      <property name="text">
-      <string>Clip PV</string>
+      <string>8. Clip PV</string>
      </property>
     </widget>
    </item>

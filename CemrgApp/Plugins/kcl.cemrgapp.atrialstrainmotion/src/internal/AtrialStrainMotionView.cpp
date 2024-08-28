@@ -126,17 +126,31 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
 {
   // create GUI widgets from the Qt Designer's .ui file
   m_Controls.setupUi(parent);
-  // Step 1: Segment and Extract
+  // 1: Segment and Extract
   connect(m_Controls.segment_extract, SIGNAL(clicked()), this, SLOT(SegmentExtract()));
-  // Step 2: Create Surface mesh and smooth it
+  m_Controls.segment_extract->setStyleSheet("Text-align:left");
+  // 2: Create Surface mesh and smooth it
   connect(m_Controls.surface_mesh_smooth, SIGNAL(clicked()), this, SLOT(SurfaceMeshSmooth()));
-  // UAC pipeline, starting from step 3
+  m_Controls.surface_mesh_smooth->setStyleSheet("Text-align:left");
+  // 3. UAC pipeline, starting from step 3
   connect(m_Controls.button_3_imanalysis, SIGNAL(clicked()), this, SLOT(AnalysisChoice()));
-  // Post processing
-  m_Controls.button_man4_2_postproc->setVisible(false);
+  m_Controls.button_3_imanalysis->setStyleSheet("Text-align:left");
+  // 4. Post processing
+  // m_Controls.button_man4_2_postproc->setVisible(false);
   connect(m_Controls.button_man4_2_postproc, SIGNAL(clicked()), this, SLOT(SegmentationPostprocessing()));
-  // Identify PVs
+  m_Controls.button_man4_2_postproc->setStyleSheet("Text-align:left");
+  // 5. Identify PVs
   connect(m_Controls.button_man5_idPV, SIGNAL(clicked()), this, SLOT(IdentifyPV()));
+  m_Controls.button_man5_idPV->setStyleSheet("Text-align:left");
+  // 6. Create Labelled Mesh
+  connect(m_Controls.button_man6_labelmesh, SIGNAL(clicked()), this, SLOT(CreateLabelledMesh()));
+  m_Controls.button_man6_labelmesh->setStyleSheet("Text-align:left");
+  // 7. Mesh Preprocessing
+  connect(m_Controls.button_auto4_meshpreproc, SIGNAL(clicked()), this, SLOT(MeshPreprocessing()));
+  m_Controls.button_auto4_meshpreproc->setStyleSheet("Text-align:left");
+  // 8. Clip PV
+  connect(m_Controls.button_man8_clipPV, SIGNAL(clicked()), this, SLOT(ClipperPV()));
+  m_Controls.button_man8_clipPV->setStyleSheet("Text-align:left");
 
 
   // Set default variables
@@ -697,7 +711,7 @@ void AtrialStrainMotionView::SegmentationPostprocessing(){
     this->GetSite()->GetPage()->ShowView("org.mitk.views.segmentationutilities");
 }
 
-// TODO: AtrialFibresClipperView.h: No such file or directory
+
 void AtrialStrainMotionView::IdentifyPV(){
     if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
     QString path = Path("UCT_CT/") + "segmentation.vtk";
@@ -746,4 +760,140 @@ void AtrialStrainMotionView::IdentifyPV(){
     // AtrialFibresClipperView::SetDirectoryFile(Path("UCT_CT"), "segmentation.vtk", automaticPipeline);
 
     this->GetSite()->GetPage()->ShowView("org.mitk.views.atrialfibresclipperview");
+}
+
+void AtrialStrainMotionView::CreateLabelledMesh() {
+    MITK_INFO << "TIMELOG|CreateLabelledMesh| Start";
+    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
+
+    if(!analysisOnLge){
+        QString segRegPath = GetFilePath("LA-reg", ".nii");
+        if(!segRegPath.isEmpty()){
+            int reply = Ask("Registered segmentation found", "Consider a Scar Projection analysis?");
+            SetLgeAnalysis(reply==QMessageBox::Yes);
+        }
+        tagName += analysisOnLge ? "-reg" : "";
+    }
+
+    QString prodPath =  directory + "/UCT_CT/";
+
+    ImageType::Pointer pveins = atrium->LoadImage(prodPath+"PVeinsLabelled.nii");
+    if(!tagName.contains("Labelled")){
+        std::string msg = "Changing working name from " + tagName.toStdString() + " to 'Labelled'";
+        QMessageBox::information(NULL, "Attention", msg.c_str());
+        tagName = "Labelled";
+    }
+    pveins = atrium->AssignOstiaLabelsToVeins(pveins, directory, tagName);
+
+    MITK_INFO << "[CreateLabelledMesh] Create Mesh";
+    //Ask for user input to set the parameters
+    bool userInputsAccepted = GetUserMeshingInputs();
+
+    if(userInputsAccepted){
+        MITK_INFO << "[CreateLabelledMesh] Create clean segmentation";
+        mitk::Image::Pointer segIm = mitk::Image::New();
+        mitk::CastToMitkImage(pveins, segIm);
+        segIm = CemrgCommonUtils::ReturnBinarised(segIm);
+        mitk::IOUtil::Save(segIm, StdStringPath("UCT_CT/prodClean.nii"));
+
+        MITK_INFO << "[CreateLabelledMesh] Create surface file and projecting tags";
+        std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+        cmd->SetUseDockerContainers(true);
+
+        cmd->ExecuteSurf(directory + "/UCT_CT", Path("UCT_CT/prodClean.nii"), "close", uiMesh_iter, uiMesh_th, uiMesh_bl, uiMesh_smth);
+        atrium->ProjectTagsOnExistingSurface(pveins, directory, tagName+".vtk");
+
+        MITK_INFO << "Add the mesh to storage";
+        QString path = prodPath + tagName + ".vtk";
+
+        std::cout << "Path to load: " << path.toStdString() <<'\n';
+        std::cout << "tagName: " << tagName.toStdString() << '\n';
+        mitk::Surface::Pointer surface = mitk::IOUtil::Load<mitk::Surface>(path.toStdString());
+
+        std::string meshName = tagName.toStdString() + "-Mesh";
+        CemrgCommonUtils::AddToStorage(surface, meshName, this->GetDataStorage());
+    }
+    MITK_INFO << "TIMELOG|CreateLabelledMesh| End";
+}
+
+void AtrialStrainMotionView::MeshPreprocessing(){
+    MITK_INFO << "TIMELOG|MeshPreprocessing| Start";
+    MITK_INFO << "[MeshPreprocessing] ";
+    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
+    if (!LoadSurfaceChecks()) return;
+
+    //Show the plugin
+    this->GetSite()->GetPage()->ResetPerspective();
+    AtrialFibresClipperView::SetDirectoryFile(directory, tagName+".vtk", true);
+    this->GetSite()->GetPage()->ShowView("org.mitk.views.atrialfibresclipperview");
+}
+
+
+void AtrialStrainMotionView::ClipperPV(){
+    MITK_INFO << "TIMELOG|MeshPreprocessing| End";
+    MITK_INFO << "TIMELOG|ClipperPV| Start";
+    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.#
+    if (!LoadSurfaceChecks()) return; // Surface was not loaded and user could not find file.
+
+    QString prodPath = Path();
+
+    MITK_INFO << "[ClipperPV] clipping PVs.";
+
+    QString path = prodPath + tagName + ".vtk";
+
+    mitk::Surface::Pointer surface = mitk::IOUtil::Load<mitk::Surface>(path.toStdString());
+    path = prodPath + "prodClipperIDsAndRadii.txt";
+    if(QFile::exists(path)){
+
+        MITK_INFO << "[ClipperPV] Reading in centre IDs and radii";
+        std::ifstream fi;
+        fi.open((path.toStdString()));
+
+        int numPts;
+        fi >> numPts;
+
+        for (int ix = 0; ix < numPts; ix++) {
+            int ptId;
+            double radius, x_c, y_c, z_c;
+
+            fi >> ptId >> x_c >> y_c >> z_c >> radius;
+
+            QString spherePath = prodPath + "pvClipper_" + QString::number(ptId) + ".vtk";
+            std::cout << "Read points: ID:" << ptId << " C=[" << x_c << " " << y_c << " " << z_c << "] R=" << radius <<'\n';
+
+            surface = CemrgCommonUtils::ClipWithSphere(surface, x_c, y_c, z_c, radius, spherePath);
+        }
+        fi.close();
+
+        // save surface
+        path = prodPath + tagName + ".vtk";
+        mitk::IOUtil::Save(surface, path.toStdString());
+        atrium->SetSurface(path);
+
+        SetTagNameFromPath(path);
+        if(automaticPipeline){
+            ClipperMV();
+
+            QString correctLabels = prodPath + "prodSeedLabels.txt";
+            QString naiveLabels = prodPath + "prodNaiveSeedLabels.txt";
+
+            QMessageBox::information(NULL, "Attention", "Attempting to correct automatic labels to default ones");
+            atrium->SetSurfaceLabels(correctLabels, naiveLabels);
+            atrium->SaveSurface(path.toStdString());
+        }
+
+        QMessageBox::information(NULL, "Attention", "Clipping of PV and MV finished");
+
+    } else{
+        QMessageBox::warning(NULL, "Warning", "Radii file not found");
+        return;
+    }
+
+}
+
+void AtrialStrainMotionView::ClipperMV(){
+
+   MITK_INFO << "[ClipperMV] Clipping mitral valve";
+   atrium->ClipMitralValveAuto(directory, "prodMVI.nii", tagName+".vtk");
+
 }
