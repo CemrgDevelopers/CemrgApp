@@ -53,7 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui_AtrialStrainMotionViewControls.h"
 #include "ui_AtrialFibresViewUIAnalysisSelector.h"
 #include "ui_AtrialFibresViewUIMeshing.h"
-
+#include "ui_AtrialFibresViewUIUacSelector.h"
+#include "ui_AtrialFibresViewUIEditLabels.h"
 
 
 #include "CemrgAtrialTools.h"
@@ -76,14 +77,11 @@ public:
   bool GetUserAnalysisSelectorInputs();
   void SetAutomaticModeButtons(bool b);
   void AutomaticAnalysis();
-  void SetManualModeButtons(bool b);
   bool GetUserMeshingInputs();
 
   inline QString Path(QString fnameExt=""){return (directory+"/"+fnameExt);};
   inline std::string StdStringPath(QString fnameExt=""){return (Path(fnameExt).toStdString());};
   inline void SetAutomaticPipeline(bool isAuto){automaticPipeline=isAuto;};
-  inline void SetManualModeButtonsOn(){SetManualModeButtons(true);};
-  inline void SetManualModeButtonsOff(){SetManualModeButtons(false);};
   inline void SetAutomaticModeButtonsOn(){SetAutomaticModeButtons(true);};
   inline void SetAutomaticModeButtonsOff(){SetAutomaticModeButtons(false);};
 
@@ -95,6 +93,8 @@ public:
   void CheckLoadedMeshQuality();
   void SetTagNameFromPath(QString path);
   QString UserIncludeLgeAnalysis(QString segPath, ImageType::Pointer seg);
+  bool GetUserUacOptionsInputs(bool enableFullUiOptions=true);
+  bool GetUserEditLabelsInputs();
 
 protected:
   virtual void CreateQtPartControl(QWidget *parent) override;
@@ -108,6 +108,8 @@ protected:
   Ui::AtrialStrainMotionViewControls m_Controls;
   Ui::AtrialFibresViewUIAnalysisSelector m_UISelector;
   Ui::AtrialFibresViewUIMeshing m_UIMeshing;
+  Ui::AtrialFibresViewUIUacSelector m_UIUac;
+  Ui::AtrialFibresViewUIEditLabels m_UIEditLabels;
 
   /// \brief Called when the user clicks the GUI button
 
@@ -123,14 +125,21 @@ protected slots:
   void MeshPreprocessing();
   void ClipperPV();
   void ClipperMV();
+  void UacCalculationVerifyLabels();
 
 private:
   double uiMesh_th, uiMesh_bl, uiMesh_smth, uiMesh_iter;
   QString directory, tagName, cnnPath;
   std::unique_ptr<CemrgAtrialTools> atrium;
   int uiSelector_pipeline;
+  bool uiUac_meshtype_labelled;
+  int uiUac_whichAtriumIndex, uiUac_fibreFileIndex, uiUac_surftypeIndex;
   bool automaticPipeline, analysisOnLge, resurfaceMesh, userHasSetMeshingParams;
   bool uiSelector_imgauto_skipCemrgNet, uiSelector_imgauto_skipLabel, uiSelector_img_scar, uiSelector_man_useCemrgNet;
+  QStringList uiUac_fibreFile, uiUac_whichAtrium, uiUac_surftype;
+  QStringList uiLabels;
+  QString uac_whichAtrium;
+
 };
 
 #endif // AtrialStrainMotionView_h

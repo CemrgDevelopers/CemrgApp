@@ -84,6 +84,7 @@ public:
     inline void SetDebug(bool b){debugging = b;};
     inline void SetDebugOn(){SetDebug(true);};
     inline void SetDebugOff(){SetDebug(false);};
+	inline void static output_directory(){MITK_INFO << "Hi: " << directory;};
 
 protected slots:
 
@@ -139,6 +140,7 @@ private:
 
     static QString fileName;
     static QString directory;
+
     static bool isAutomatic;
 
     bool automaticPipeline, debugging;

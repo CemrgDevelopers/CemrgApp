@@ -122,6 +122,9 @@ void AtrialFibresClipperView::CreateQtPartControl(QWidget *parent) {
 
     // Display correct buttons
     automaticPipeline = AtrialFibresClipperView::isAutomatic;
+
+	iniPreSurf();
+
     debugging = false;
     SetAutomaticModeButtons(automaticPipeline);
     SetManualModeButtons(!automaticPipeline);
@@ -168,7 +171,7 @@ void AtrialFibresClipperView::CreateQtPartControl(QWidget *parent) {
     interactor->GetInteractorStyle()->AddObserver(vtkCommand::KeyPressEvent, callBack);
 
     MITK_INFO << "Initialisation";
-    iniPreSurf();
+    // iniPreSurf();
     if (surface.IsNotNull()) {
         InitialisePickerObjects();
         clipper = std::unique_ptr<CemrgAtriaClipper>(new CemrgAtriaClipper(directory, surface));
@@ -198,6 +201,8 @@ void AtrialFibresClipperView::OnSelectionChanged(
 
 AtrialFibresClipperView::~AtrialFibresClipperView() {
     inputs->deleteLater();
+	AtrialFibresClipperView::fileName = "";
+	AtrialFibresClipperView::directory = "";
 }
 
 void AtrialFibresClipperView::SetDirectoryFile(const QString directory, const QString fileName, const bool isAutomatic) {
@@ -207,8 +212,24 @@ void AtrialFibresClipperView::SetDirectoryFile(const QString directory, const QS
 }
 
 void AtrialFibresClipperView::iniPreSurf() {
+
     //Find the selected node
 	if (AtrialFibresClipperView::directory.isEmpty() || AtrialFibresClipperView::fileName.isEmpty()) {
+
+		QMessageBox msgBox;
+		msgBox.setText("Identify PV or Mesh Preprocessing?");
+		QPushButton *identify = msgBox.addButton(QMessageBox::Ok);
+		identify->setText("Identify PV");
+		QPushButton *preprocessing = msgBox.addButton(QMessageBox::Ok);
+		preprocessing->setText("Mesh Preprocessing");
+
+		msgBox.exec();
+
+		if (msgBox.clickedButton() == identify)
+			automaticPipeline = false;
+		else if (msgBox.clickedButton() == preprocessing)
+			automaticPipeline = true;
+
 		QString fileNamePath = QFileDialog::getOpenFileName(NULL, "Open mesh file (segmentation.vtk)",
             directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
 		QFileInfo fi(fileNamePath);
