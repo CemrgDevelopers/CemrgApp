@@ -148,12 +148,13 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
   // 7. Mesh Preprocessing
   connect(m_Controls.button_auto4_meshpreproc, SIGNAL(clicked()), this, SLOT(MeshPreprocessing()));
   m_Controls.button_auto4_meshpreproc->setStyleSheet("Text-align:left");
-  // 8. Clip PV
-  connect(m_Controls.button_man8_clipPV, SIGNAL(clicked()), this, SLOT(ClipperPV()));
-  m_Controls.button_man8_clipPV->setStyleSheet("Text-align:left");
-  // 9. Verify Labels
+  // 8. Verify Labels
   connect(m_Controls.button_0_3_checklabels, SIGNAL(clicked()), this, SLOT(UacCalculationVerifyLabels()));
   m_Controls.button_0_3_checklabels->setStyleSheet("Text-align:left");
+  // 9. Clip PV
+  connect(m_Controls.button_man8_clipPV, SIGNAL(clicked()), this, SLOT(ClipperPV()));
+  m_Controls.button_man8_clipPV->setStyleSheet("Text-align:left");
+
 
 
   // Set default variables
@@ -276,8 +277,8 @@ int AtrialStrainMotionView::Ask(std::string title, std::string msg){
 
 bool AtrialStrainMotionView::LoadSurfaceChecks(){
     bool success = true;
-    QString prodPath = directory + "/UAC_CT/" + tagName + ".vtk";
     UserLoadSurface();
+	QString prodPath = directory + "/UAC_CT/" + tagName + ".vtk";
     MITK_INFO << ("[LoadSurfaceChecks] Loading surface: " + prodPath).toStdString();
 
     return success;
@@ -336,7 +337,7 @@ void AtrialStrainMotionView::SetAutomaticModeButtons(bool b){
 }
 
 void AtrialStrainMotionView::UserLoadSurface(){
-    QString newpath = directory + "/UAC_CT/LA_msh.vtk";
+    QString newpath = directory + "/UAC_CT/" + tagName + ".vtk";
     SetTagNameFromPath(newpath);
     CheckLoadedMeshQuality();
 }
@@ -818,17 +819,19 @@ void AtrialStrainMotionView::AnalysisChoice(){
         MITK_INFO << "[AnalysisChoice] Analysis starting from surface";
         SetAutomaticPipeline(false);
 
-        // Load surface mesh
+        // Load surface mesh: LA_msh.vtk
+		tagName = "LA_msh";
         if(!LoadSurfaceChecks()) return;
 
         // Create fake segmentation image for labelling
         double origin[3] = {0, 0, 0};
         double spacing[3] = {1, 1, 1};
+		MITK_INFO << tagName;
         CemrgCommonUtils::SaveImageFromSurfaceMesh(Path("UAC_CT/" + tagName + ".vtk"), origin, spacing);
         CemrgCommonUtils::SavePadImageWithConstant(Path("UAC_CT/" + tagName + ".nii"));
 
         mitk::Image::Pointer im = CemrgCommonUtils::ReturnBinarised(mitk::IOUtil::Load<mitk::Image>(StdStringPath("UAC_CT/" + tagName+".nii")));
-        // CemrgCommonUtils::Binarise(im);
+
         mitk::IOUtil::Save(im, StdStringPath("UAC_CT/" + tagName+".nii"));
         CemrgCommonUtils::AddToStorage(im, tagName.toStdString(), this->GetDataStorage());
 
@@ -843,6 +846,8 @@ void AtrialStrainMotionView::SegmentationPostprocessing(){
 void AtrialStrainMotionView::IdentifyPV(){
     if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
     QString path = Path("UAC_CT/") + "segmentation.vtk";
+
+	userHasSetMeshingParams = false;
 
     if(!QFileInfo::exists(path)){
         // Select segmentation from data manager
@@ -886,9 +891,6 @@ void AtrialStrainMotionView::IdentifyPV(){
 
     MITK_INFO << "Loading org.mitk.views.atrialfibresclipperview";
     this->GetSite()->GetPage()->ResetPerspective();
-
-    // AtrialFibresClipperView::SetDirectoryFile(Path("UAC_CT"), "segmentation.vtk", automaticPipeline);
-
     this->GetSite()->GetPage()->ShowView("org.mitk.views.atrialfibresclipperview");
 }
 
@@ -958,12 +960,12 @@ void AtrialStrainMotionView::MeshPreprocessing(){
     // AtrialFibresClipperView::SetDirectoryFile(directory, tagName+".vtk", true);
     this->GetSite()->GetPage()->ShowView("org.mitk.views.atrialfibresclipperview");
     AtrialFibresClipperView::output_directory(); // directory is empty
-    //TODO: mesh verfication not showing
 }
 
 
 void AtrialStrainMotionView::ClipperPV(){
-    MITK_INFO << "TIMELOG|MeshPreprocessing| End";
+
+	MITK_INFO << "TIMELOG|MeshPreprocessing| End";
     MITK_INFO << "TIMELOG|ClipperPV| Start";
     if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.#
     if (!LoadSurfaceChecks()) return; // Surface was not loaded and user could not find file.
@@ -972,7 +974,10 @@ void AtrialStrainMotionView::ClipperPV(){
 
     MITK_INFO << "[ClipperPV] clipping PVs.";
 
+	tagName = "Labelled";
     QString path = prodPath + tagName + ".vtk";
+
+	MITK_INFO << path.toStdString();
 
     mitk::Surface::Pointer surface = mitk::IOUtil::Load<mitk::Surface>(path.toStdString());
     path = prodPath + "prodClipperIDsAndRadii.txt";
@@ -997,6 +1002,9 @@ void AtrialStrainMotionView::ClipperPV(){
             surface = CemrgCommonUtils::ClipWithSphere(surface, x_c, y_c, z_c, radius, spherePath);
         }
         fi.close();
+
+		// mitk::Surface::Pointer la_msh = mitk::IOUtil::Load<mitk::Surface>(la_msh_path.toStdString());
+        CemrgCommonUtils::AddToStorage(surface, "clipped", this->GetDataStorage());
 
         // save surface
         path = prodPath + tagName + ".vtk";
@@ -1031,6 +1039,9 @@ void AtrialStrainMotionView::ClipperMV(){
 }
 
 void AtrialStrainMotionView::UacCalculationVerifyLabels(){
+	tagName = "Labelled";
+
+	MITK_INFO << tagName;
     MITK_INFO << "TIMELOG|VerifyLabels| Start";
     if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
     if(GetUserUacOptionsInputs(false)){
@@ -1044,6 +1055,7 @@ void AtrialStrainMotionView::UacCalculationVerifyLabels(){
         MITK_INFO << "labels not checked. Stopping";
         return;
     }
+	MITK_INFO << tagName;
 
     MITK_INFO(LoadSurfaceChecks()) << ("Loaded surface" + tagName).toStdString();
     std::string title, msg;
@@ -1060,11 +1072,11 @@ void AtrialStrainMotionView::UacCalculationVerifyLabels(){
             for (unsigned int ix = 0; ix < incorrectLabels.size(); ix++) {
                 atrium->FixSingleLabelConnectivityInSurface(surface, incorrectLabels.at(ix));
             }
-            mitk::IOUtil::Save(surface, StdStringPath("UAC_CT/"+tagName+".vtk"));
+            mitk::IOUtil::Save(surface, StdStringPath("UAC_CT/" + tagName + ".vtk"));
 
             title = "Labels fixed";
             msg = "Labels fixed - saved file: \n";
-            msg += StdStringPath(tagName+".vtk");
+            msg += StdStringPath("UAC_CT/" + tagName + ".vtk");
             QMessageBox::information(NULL, title.c_str(), msg.c_str());
 
         } else{
