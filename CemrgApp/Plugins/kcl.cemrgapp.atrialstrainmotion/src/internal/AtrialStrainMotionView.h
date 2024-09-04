@@ -126,6 +126,7 @@ protected slots:
   void ClipperPV();
   void ClipperMV();
   void UacCalculationVerifyLabels();
+  void MeshImprovement();
 
 private:
   double uiMesh_th, uiMesh_bl, uiMesh_smth, uiMesh_iter;

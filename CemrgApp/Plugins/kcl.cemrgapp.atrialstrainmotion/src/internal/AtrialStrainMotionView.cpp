@@ -154,6 +154,9 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
   // 9. Clip PV
   connect(m_Controls.button_man8_clipPV, SIGNAL(clicked()), this, SLOT(ClipperPV()));
   m_Controls.button_man8_clipPV->setStyleSheet("Text-align:left");
+  // 10. Mesh Improvement
+  connect(m_Controls.btn_mesh_improvement, SIGNAL(clicked()), this, SLOT(MeshImprovement()));
+  m_Controls.btn_mesh_improvement->setStyleSheet("Text-align:left");
 
 
 
@@ -1099,6 +1102,29 @@ void AtrialStrainMotionView::UacCalculationVerifyLabels(){
         MITK_INFO << msg;
     }
     MITK_INFO << "TIMELOG|VerifyLabels| End";
+}
+
+void AtrialStrainMotionView::MeshImprovement() {
+    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.#
+
+    // Mesh Improvement: Resampling
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+    QString meshname = "Labelled";
+    QString outname = "Labelled-refined";
+    double hmax = 0.5;
+    double hmin = 0.1;
+    double havg = 0.3;
+    double surfCorr = 0.95;
+    QString refinedPath = cmd->DockerRemeshSurface(Path("UAC_CT/"), meshname, outname, hmax, hmin, havg, surfCorr);
+
+    // Mesh Improvement: Cleaning
+    cmd->DockerCleanMeshQuality(Path("UAC_CT/"), "Labelled-refined", "clean-Labelled-refined", 0.2, "vtk", "vtk_polydata");
+    cmd->DockerCleanMeshQuality(Path("UAC_CT/"), "clean-Labelled-refined", "clean-Labelled-refined", 0.1, "vtk", "vtk_polydata");
+
+    // Convert Format
+    cmd->DockerConvertMeshFormat(Path("UAC_CT/"), "clean-Labelled-refined", "vtk", "clean-Labelled-refined", "carp_txt", 1000);
+
 }
 
 
