@@ -157,6 +157,15 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
   // 10. Mesh Improvement
   connect(m_Controls.btn_mesh_improvement, SIGNAL(clicked()), this, SLOT(MeshImprovement()));
   m_Controls.btn_mesh_improvement->setStyleSheet("Text-align:left");
+  // 11. Auto Landmark
+  connect(m_Controls.autoLM, SIGNAL(clicked()), this, SLOT(AutoLandMark()));
+  m_Controls.autoLM->setStyleSheet("Text-align:left");
+  // 12. UAC Stage 1
+  connect(m_Controls.uac_stage_1, SIGNAL(clicked()), this, SLOT(UAC_Stage1()));
+  m_Controls.uac_stage_1->setStyleSheet("Text-align:left");
+    // 12. UAC Stage 1
+  connect(m_Controls.uac_stage_2, SIGNAL(clicked()), this, SLOT(UAC_Stage2()));
+  m_Controls.uac_stage_2->setStyleSheet("Text-align:left");
 
 
 
@@ -707,6 +716,34 @@ bool AtrialStrainMotionView::GetUserEditLabelsInputs(){
     return userInputAccepted;
 }
 
+bool AtrialStrainMotionView::IsOutputFileCorrect(QString dir, QStringList filenames){
+    bool success = true;
+
+    int countfails = 0;
+    QString checkOutputMsg = "";
+
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    for (int ix = 0; ix < filenames.size(); ix++) {
+        bool okSingleTest = cmd->IsOutputSuccessful(dir + "/" + filenames.at(ix));
+
+        if (!okSingleTest){
+            MITK_ERROR << ("File(s) not created - " + filenames.at(ix)).toStdString();
+            countfails++;
+            checkOutputMsg += (countfails==1) ? "File(s) not created: " : "";
+            checkOutputMsg += "\n " + filenames.at(ix);
+        }
+    }
+
+    if (!checkOutputMsg.isEmpty()){
+        std::string msg = checkOutputMsg.toStdString();
+        QMessageBox::warning(NULL, "Warning", msg.c_str());
+        success = false;
+    }
+
+    return success;
+
+}
+
 bool AtrialStrainMotionView::RequestProjectDirectoryFromUser() {
 
   bool succesfulAssignment = true;
@@ -1127,4 +1164,130 @@ void AtrialStrainMotionView::MeshImprovement() {
 
 }
 
+void AtrialStrainMotionView::AutoLandMark() {
+    if (!RequestProjectDirectoryFromUser()) return;
 
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+
+    QString outputFullPath = Path("UAC_CT/") + "prodRefinedLandmarks.txt";
+    cmd->ExecuteTouch(outputFullPath);
+    cmd->DockerAtrialStrainMotion(Path("UAC_CT/"), "autoLM");
+
+    QFileInfo finfo(outputFullPath);
+    bool fileExists = finfo.exists();
+
+    MITK_INFO << (fileExists ? "Final decision: Done" : "Final decision: Output file not found.");
+}
+
+void AtrialStrainMotionView::UAC_Stage1(){
+    if (!RequestProjectDirectoryFromUser()) return;
+    // docker run --rm --volume=/home/bzhou6/Desktop/V-0005/UAC_CT:/data cemrg/uac:3.0-beta uac --uac-stage 1 --atrium la --layer endo --fibre l --msh clean-Labelled-refined --tags 1 19 11 13 15 17 --landmarks prodRefinedLandmarks.txt --scale 1000
+
+    MITK_INFO << "TIMELOG|UacCalculation_Stage1| Start";
+    // Cemrg CMD
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+    MITK_INFO << "Do Rough UAC code from Docker";
+
+    QString uacOutput;
+    QStringList outputFiles;
+
+    QStringList tags;
+    tags << "1" << "19" << "11" << "13" << "15" << "17";
+    QStringList landmarks;
+    landmarks << "prodRefinedLandmarks.txt";
+    uacOutput = cmd->DockerUacMainMode(directory + "/UAC_CT", "1", "la", "endo", "l", "clean-Labelled-refined", tags, landmarks, false, false, 1000);
+    MITK_INFO << ("TIMELOG|UacCalculation_Stage1| UAC 1 end " + uacOutput).toStdString();
+
+    outputFiles << "LSbc1.vtx" << "LSbc2.vtx";
+    outputFiles << "PAbc1.vtx" << "PAbc2.vtx";
+
+    if (!IsOutputFileCorrect(directory + "/UAC_CT", outputFiles)){
+        MITK_INFO << "TIMELOG|UacCalculation_Stage1| End (FAIL)";
+        return;
+    }
+
+    //TODO: remove -parab_options_file ilu_cg_opts -ellip_options_file amg_cg_opts --> Unable to access file ilu_cg_opts
+    MITK_INFO << "Create Laplace Solve files for LR and PA SOLVES";
+    QString lr_par, pa_par;
+    MITK_INFO << "TIMELOG|UacCalculation_Stage1| openCARP start";
+    lr_par = CemrgCommonUtils::OpenCarpParamFileGenerator(directory + "/UAC_CT", "carpf_laplace_LS.par", "clean-Labelled-refined", "LSbc1", "LSbc2");
+    pa_par = CemrgCommonUtils::OpenCarpParamFileGenerator(directory + "/UAC_CT", "carpf_laplace_PA.par", "clean-Labelled-refined", "PAbc1", "PAbc2");
+
+    MITK_INFO << "Do Laplace Solves using Docker";
+    cmd->SetDockerImageOpenCarp();
+    QString lrLapSolve, paLapSolve;
+    lrLapSolve = cmd->OpenCarpDocker(directory + "/UAC_CT", lr_par, "LR_UAC_N2");
+    paLapSolve = cmd->OpenCarpDocker(directory + "/UAC_CT" , pa_par, "PA_UAC_N2");
+    MITK_INFO << ("TIMELOG|UacCalculation_Stage1| openCARP end " + lrLapSolve + " - " + paLapSolve).toStdString();
+
+    bool uacOutputSuccess = IsOutputFileCorrect(directory + "/UAC_CT", outputFiles);
+    MITK_ERROR(!uacOutputSuccess) << "problem in UAC_Stage1";
+    std::string msg = "UAC Calculation - Stage 1 ";
+    msg += (uacOutputSuccess) ? "successful" : "failed";
+    QMessageBox::information(NULL, "Attention", msg.c_str());
+    MITK_INFO << "TIMELOG|UacCalculation_Stage1| End";
+}
+
+void AtrialStrainMotionView::UAC_Stage2(){
+    if (!RequestProjectDirectoryFromUser()) return;
+    // Cemrg CMD
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+    MITK_INFO << "Do Rough UAC code from Docker";
+
+    QStringList outputFiles;
+    outputFiles << "AnteriorMesh.elem" << "PosteriorMesh.elem";
+    outputFiles << "Ant_Strength_Test_PA1.vtx" << "Ant_Strength_Test_LS1.vtx";
+    outputFiles << "Post_Strength_Test_PA1.vtx" << "Post_Strength_Test_LS1.vtx";
+    MITK_INFO << "TIMELOG|UacCalculation_Stage2| UAC 2.1 - Start";
+
+    QStringList tags;
+    tags << "1" << "19" << "11" << "13" << "15" << "17";
+    QStringList landmarks;
+    landmarks << "prodRefinedLandmarks.txt";
+    QString uacOutput = cmd->DockerUacMainMode(directory + "/UAC_CT", "2a", "la", "endo", "l", "clean-Labelled-refined", tags, landmarks, false, false, 1000);
+    MITK_INFO << ("TIMELOG|UacCalculation_Stage2| UAC 2.1 - End " + uacOutput).toStdString();
+
+    if (!IsOutputFileCorrect(directory + "/UAC_CT", outputFiles)){
+        MITK_INFO << "TIMELOG|UacCalculation_Stage2| End (FAILED)";
+        return;
+    }
+
+    QString lrp_par, udp_par, lra_par, uda_par;
+    QString carpf_lr = "carpf_laplace_single_LR";
+    QString carpf_ud = "carpf_laplace_single_UD";
+
+    MITK_INFO << "TIMELOG|UacCalculation_Stage2| openCARP - Start";
+    lrp_par = CemrgCommonUtils::OpenCarpParamFileGenerator(directory + "/UAC_CT", carpf_lr+"_P.par", "PosteriorMesh", "", "Post_Strength_Test_LS1");
+    udp_par = CemrgCommonUtils::OpenCarpParamFileGenerator(directory + "/UAC_CT", carpf_ud+"_P.par", "PosteriorMesh", "", "Post_Strength_Test_PA1");
+    lra_par = CemrgCommonUtils::OpenCarpParamFileGenerator(directory + "/UAC_CT", carpf_lr+"_A.par", "AnteriorMesh", "", "Ant_Strength_Test_LS1");
+    uda_par = CemrgCommonUtils::OpenCarpParamFileGenerator(directory + "/UAC_CT", carpf_ud+"_A.par", "AnteriorMesh", "", "Ant_Strength_Test_PA1");
+
+    cmd->SetDockerImageOpenCarp();
+
+    QString lrpLapSolve, udpLapSolve, lraLapSolve, udaLapSolve;
+    lrpLapSolve = cmd->OpenCarpDocker(directory + "/UAC_CT", lrp_par, "LR_Post_UAC");
+    udpLapSolve = cmd->OpenCarpDocker(directory + "/UAC_CT", udp_par, "UD_Post_UAC");
+    lraLapSolve = cmd->OpenCarpDocker(directory + "/UAC_CT", lra_par, "LR_Ant_UAC");
+    udaLapSolve = cmd->OpenCarpDocker(directory + "/UAC_CT", uda_par, "UD_Ant_UAC");
+    MITK_INFO << ("TIMELOG|UacCalculation_Stage2| openCARP - End " + lrpLapSolve + "-" + udpLapSolve + "-" + lraLapSolve + "-" + udaLapSolve).toStdString();
+
+
+    outputFiles.clear();
+    outputFiles << "Labelled_Coords_2D_Rescaling_v3_C.vtk";
+    outputFiles << "Labelled_Coords_2D_Rescaling_v3_C.elem";
+    outputFiles << "Labelled_Coords_2D_Rescaling_v3_C.pts";
+    MITK_INFO << "TIMELOG|UacCalculation_Stage2| UAC 2.2 - Start";
+    uacOutput = cmd->DockerUacMainMode(directory + "/UAC_CT", "2b", "la", "endo", "l", "clean-Labelled-refined", tags, landmarks, false, false, 1000);
+    MITK_INFO << "TIMELOG|UacCalculation_Stage2| UAC 2.2 - End";
+
+    bool uacOutputSuccess = IsOutputFileCorrect(directory + "/UAC_CT", outputFiles);
+    MITK_ERROR(!uacOutputSuccess) << "Problem with UAC_Stage2";
+    std::string msg = "UAC Calculation - Stage 2 ";
+    msg += (uacOutputSuccess) ? "successful" : "failed";
+    QMessageBox::information(NULL, "Attention", msg.c_str());
+
+    MITK_INFO << ("TIMELOG|UacCalculation_Stage2| End " + uacOutput).toStdString();
+}

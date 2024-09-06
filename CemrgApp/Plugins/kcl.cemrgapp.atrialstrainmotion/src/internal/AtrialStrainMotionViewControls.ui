@@ -101,6 +101,27 @@
     </widget>
    </item>
    <item>
+    <widget class="QPushButton" name="autoLM">
+     <property name="text">
+      <string>11. Auto Landmark</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="uac_stage_1">
+     <property name="text">
+      <string>12. UAC Stage 1</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="uac_stage_2">
+     <property name="text">
+      <string>13. UAC Stage 2</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="spacer1">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

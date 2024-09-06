@@ -95,6 +95,7 @@ public:
   QString UserIncludeLgeAnalysis(QString segPath, ImageType::Pointer seg);
   bool GetUserUacOptionsInputs(bool enableFullUiOptions=true);
   bool GetUserEditLabelsInputs();
+  bool IsOutputFileCorrect(QString dir, QStringList filenames);
 
 protected:
   virtual void CreateQtPartControl(QWidget *parent) override;
@@ -127,6 +128,9 @@ protected slots:
   void ClipperMV();
   void UacCalculationVerifyLabels();
   void MeshImprovement();
+  void AutoLandMark();
+  void UAC_Stage1();
+  void UAC_Stage2();
 
 private:
   double uiMesh_th, uiMesh_bl, uiMesh_smth, uiMesh_iter;

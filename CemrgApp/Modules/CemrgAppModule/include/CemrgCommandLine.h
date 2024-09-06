@@ -112,6 +112,9 @@ public:
 
     QString DockerCctaMultilabelSegmentation(QString dir, QString path_to_f, bool saveas_nifti);
 
+    // TODO: added a function to run the afmotion image
+    void DockerAtrialStrainMotion(QString dir, QString function);
+
 protected slots:
 
     void UpdateStdText();

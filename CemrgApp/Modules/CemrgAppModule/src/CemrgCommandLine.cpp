@@ -786,20 +786,25 @@ QString CemrgCommandLine::DockerUacMainMode(QString dir, QString stage, QString 
        arguments << "--noraa";
    }
 
-   arguments << QString::number(scale);
+   arguments << "--scale" << QString::number(scale);
 
    QStringList outputs;
-   if (stage.compare("1")) {
+
+   if (stage.compare("1") == 0) {
+       MITK_INFO << "------------------------------Stage 1-------------------------------";
        outputs << "LSbc1.vtx" << "LSbc2.vtx" << "PAbc1.vtx" << "PAbc2.vtx";
 
-   } else if (stage.compare("2a")){
+   } else if (stage.compare("2a") == 0){
+       MITK_INFO << "------------------------------Stage 2a-------------------------------";
        outputs << "AnteriorMesh.elem" << "AnteriorMesh.pts" << "PosteriorMesh.elem" << "PosteriorMesh.pts";
 
-   } else if (stage.compare("2b")){
+   } else if (stage.compare("2b") == 0){
+       MITK_INFO << "------------------------------Stage 2b-------------------------------";
        outputs << "Labelled_Coords_2D_Rescaling_v3_C.elem" << "Labelled_Coords_2D_Rescaling_v3_C.pts";
    }
 
    QString outPath = home.absolutePath() + "/" + outputs.at(0);
+   MITK_INFO << "outPath: " << outPath.toStdString();
    bool successful = ExecuteCommand(executableName, arguments, outPath);
 
     if(successful){
@@ -1442,4 +1447,31 @@ QString CemrgCommandLine::DockerCctaMultilabelSegmentation(QString dir, QString 
         MITK_WARN << "Unsuccessful multilabel segmentation";
     }
     return res;
+}
+
+
+void CemrgCommandLine::DockerAtrialStrainMotion(QString dir, QString function) {
+    // docker run --rm --volume=./UAC_CT:/data/UAC_CT afmotion autoLM
+    SetDockerImage("afmotion");
+    QString executablePath = "";
+#if defined(__APPLE__)
+    executablePath = "/usr/local/bin/";
+#endif
+    QString executableName = executablePath + "docker";
+
+    QStringList arguments;
+    arguments << "run" << "--rm";
+    arguments << "--volume="+dir+":/data/UAC_CT/";
+    arguments << "afmotion";
+    arguments << function;
+
+    ExecuteCommand(executableName, arguments, "", false);
+    /***
+    if (successful) {
+        MITK_INFO << "Successful " << function.toStdString();
+    } else {
+        MITK_WARN << "Unsuccessful " << function.toStdString();
+    }
+    ***/
+
 }
