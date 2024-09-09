@@ -225,13 +225,18 @@ void AtrialFibresClipperView::iniPreSurf() {
 
 		msgBox.exec();
 
-		if (msgBox.clickedButton() == identify)
-			automaticPipeline = false;
-		else if (msgBox.clickedButton() == preprocessing)
-			automaticPipeline = true;
+        QString fileNamePath;
+		if (msgBox.clickedButton() == identify) {
+            automaticPipeline = false;
+            fileNamePath = QFileDialog::getOpenFileName(NULL, "Open mesh file (segmentation.vtk)",
+                directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
+        }
+		else if (msgBox.clickedButton() == preprocessing) {
+            automaticPipeline = true;
+            fileNamePath = QFileDialog::getOpenFileName(NULL, "Open mesh file (Labelled.vtk)",
+                directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
+        }
 
-		QString fileNamePath = QFileDialog::getOpenFileName(NULL, "Open mesh file (segmentation.vtk)",
-            directory.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
 		QFileInfo fi(fileNamePath);
 
 		AtrialFibresClipperView::fileName = fi.fileName();

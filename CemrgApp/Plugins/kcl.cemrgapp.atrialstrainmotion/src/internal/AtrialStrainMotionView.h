@@ -118,8 +118,6 @@ protected:
 protected slots:
   void DoImageProcessing();
   void SegmentExtract();
-  void SurfaceMeshSmooth();
-  void AnalysisChoice();
   void SegmentationPostprocessing();
   void IdentifyPV();
   void CreateLabelledMesh();
@@ -131,6 +129,7 @@ protected slots:
   void AutoLandMark();
   void UAC_Stage1();
   void UAC_Stage2();
+  void CreateModel();
 
 private:
   double uiMesh_th, uiMesh_bl, uiMesh_smth, uiMesh_iter;

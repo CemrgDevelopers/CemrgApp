@@ -33,91 +33,84 @@
    <item>
     <widget class="QPushButton" name="segment_extract">
      <property name="text">
-      <string>1. Segment and Extract LA</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="surface_mesh_smooth">
-     <property name="text">
-      <string>2. Surface Mesh and Smooth</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="button_3_imanalysis">
-     <property name="text">
-      <string>3. Analysis Selector</string>
+      <string>1. Extract LA Surface Mesh</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man4_2_postproc">
      <property name="text">
-      <string>4. Postprocess Segmentation</string>
+      <string>2. Postprocess Segmentation</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man5_idPV">
      <property name="text">
-      <string>5. Identify PVs</string>
+      <string>3. Identify PVs</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man6_labelmesh">
      <property name="text">
-      <string>6. Create Labelled Mesh</string>
+      <string>4. Create Labelled Mesh</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_auto4_meshpreproc">
      <property name="text">
-      <string>7. Mesh Preprocessing</string>
+      <string>5. Mesh Preprocessing</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_0_3_checklabels">
      <property name="text">
-      <string>8. Verify Labels</string>
+      <string>(optional) Verify Labels</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="button_man8_clipPV">
      <property name="text">
-      <string>9. Clip PV</string>
+      <string>7. Clip PV</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="btn_mesh_improvement">
      <property name="text">
-      <string>10. Mesh Improvement</string>
+      <string>8. Mesh Improvement</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="autoLM">
      <property name="text">
-      <string>11. Auto Landmark</string>
+      <string>9. Auto Landmark</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="uac_stage_1">
      <property name="text">
-      <string>12. UAC Stage 1</string>
+      <string>10. UAC Stage 1</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="uac_stage_2">
      <property name="text">
-      <string>13. UAC Stage 2</string>
+      <string>11. UAC Stage 2</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="create_model">
+     <property name="text">
+      <string>12. Create Model</string>
      </property>
     </widget>
    </item>

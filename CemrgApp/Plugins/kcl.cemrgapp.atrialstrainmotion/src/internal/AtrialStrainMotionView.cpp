@@ -129,12 +129,6 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
   // 1: Segment and Extract
   connect(m_Controls.segment_extract, SIGNAL(clicked()), this, SLOT(SegmentExtract()));
   m_Controls.segment_extract->setStyleSheet("Text-align:left");
-  // 2: Create Surface mesh and smooth it
-  connect(m_Controls.surface_mesh_smooth, SIGNAL(clicked()), this, SLOT(SurfaceMeshSmooth()));
-  m_Controls.surface_mesh_smooth->setStyleSheet("Text-align:left");
-  // 3. UAC pipeline, starting from step 3
-  connect(m_Controls.button_3_imanalysis, SIGNAL(clicked()), this, SLOT(AnalysisChoice()));
-  m_Controls.button_3_imanalysis->setStyleSheet("Text-align:left");
   // 4. Post processing
   // m_Controls.button_man4_2_postproc->setVisible(false);
   connect(m_Controls.button_man4_2_postproc, SIGNAL(clicked()), this, SLOT(SegmentationPostprocessing()));
@@ -163,9 +157,13 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
   // 12. UAC Stage 1
   connect(m_Controls.uac_stage_1, SIGNAL(clicked()), this, SLOT(UAC_Stage1()));
   m_Controls.uac_stage_1->setStyleSheet("Text-align:left");
-    // 12. UAC Stage 1
+  // 13. UAC Stage 2
   connect(m_Controls.uac_stage_2, SIGNAL(clicked()), this, SLOT(UAC_Stage2()));
   m_Controls.uac_stage_2->setStyleSheet("Text-align:left");
+
+  // 14. Create Model
+  connect(m_Controls.create_model, SIGNAL(clicked()), this, SLOT(CreateModel()));
+  m_Controls.create_model->setStyleSheet("Text-align:left");
 
 
 
@@ -517,52 +515,13 @@ QString AtrialStrainMotionView::UserIncludeLgeAnalysis(QString segPath, ImageTyp
 bool AtrialStrainMotionView::GetUserMeshingInputs(){
     bool userInputAccepted=false;
 
-    if(userHasSetMeshingParams){
-        QString msg = "The parameters have been set already, change them?\n";
-        msg += "close iter= " + QString::number(uiMesh_iter) + '\n';
-        msg += "threshold= " + QString::number(uiMesh_th) + '\n';
-        msg += "blur= " + QString::number(uiMesh_bl) + '\n';
-        msg += "smooth iter= " + QString::number(uiMesh_smth);
+    uiMesh_th=0.5;
+    uiMesh_bl=0.0;
+    uiMesh_smth=10;
+    uiMesh_iter=0;
 
-        if(Ask("Question", msg.toStdString())==QMessageBox::Yes){
-            userHasSetMeshingParams=false;
-            return GetUserMeshingInputs();
-        } else{
-            userInputAccepted=true;
-        }
-    } else{
-        QDialog* inputs = new QDialog(0, Qt::WindowFlags());
-        m_UIMeshing.setupUi(inputs);
-        connect(m_UIMeshing.buttonBox, SIGNAL(accepted()), inputs, SLOT(accept()));
-        connect(m_UIMeshing.buttonBox, SIGNAL(rejected()), inputs, SLOT(reject()));
-        int dialogCode = inputs->exec();
-
-        //Act on dialog return code
-        if (dialogCode == QDialog::Accepted) {
-
-            bool ok1, ok2, ok3, ok4;
-            uiMesh_th= m_UIMeshing.lineEdit_1->text().toDouble(&ok1);
-            uiMesh_bl= m_UIMeshing.lineEdit_2->text().toDouble(&ok2);
-            uiMesh_smth= m_UIMeshing.lineEdit_3->text().toDouble(&ok3);
-            uiMesh_iter= m_UIMeshing.lineEdit_4->text().toDouble(&ok4);
-
-            //Set default values
-            if (!ok1 || !ok2 || !ok3 || !ok4)
-            QMessageBox::warning(NULL, "Attention", "Reverting to default parameters!");
-            if (!ok1) uiMesh_th=0.5;
-            if (!ok2) uiMesh_bl=0.0;
-            if (!ok3) uiMesh_smth=10;
-            if (!ok4) uiMesh_iter=0;
-
-            inputs->deleteLater();
-            userInputAccepted=true;
-            userHasSetMeshingParams=true;
-
-        } else if (dialogCode == QDialog::Rejected) {
-            inputs->close();
-            inputs->deleteLater();
-        }//_if
-    }
+    userInputAccepted=true;
+    userHasSetMeshingParams=true;
 
     return userInputAccepted;
 }
@@ -818,17 +777,9 @@ void AtrialStrainMotionView::SegmentExtract() {
 
     // CemrgCommonUtils::AddToStorage(segmentation, "LA", this->GetDataStorage());
 
-}
-
-void AtrialStrainMotionView::SurfaceMeshSmooth() {
-
-    if (!RequestProjectDirectoryFromUser()) return;
-
-    QString la_path = directory + "/LA.nii";
+    // Extract LA Mesh surface
     QString la_msh_path = directory + "/LA_msh.vtk";
     QString la_msh_smth_path = directory + "/LA_msh_smth.vtk";
-
-    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
     // cmd->ExecuteSurf(directory, directory + "/LA.nii", "close", 0, 0.5, 0, 100);
     cmd->ExecuteExtractSurface(directory, la_path, la_msh_path, 0.5, 0);
     // cmd->ExecuteSmoothSurface(directory, la_msh_path, la_msh_smth_path, 100);
@@ -842,13 +793,7 @@ void AtrialStrainMotionView::SurfaceMeshSmooth() {
 
     MITK_INFO(QFile::copy(la_msh_path, directory + "/UAC_CT" + "/LA_msh.vtk")) << "Copied LA_msh.vtk";
 
-    // ~/Software/CemrgApp_v2.1/bin/MLib/extract-surface ${basePath}/S-0046/nifti/LA.nii ${basePath}/S-0046/nifti/LA-msh.vtk -isovalue 0.5 -blur 0 -ascii -verbose 3
-    // ~/Software/CemrgApp_v2.1/bin/MLib/smooth-surface ${basePath}/S-0046/nifti/LA-msh.vtk ${basePath}/S-0046/nifti/LA-msh-smth.vtk -iterations 100
-}
-
-void AtrialStrainMotionView::AnalysisChoice(){
-    if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
-
+    // Analysis Selector
     bool userInputsAccepted = GetUserAnalysisSelectorInputs();
     uiSelector_pipeline = 2;
     if(userInputsAccepted){
@@ -1156,6 +1101,7 @@ void AtrialStrainMotionView::MeshImprovement() {
     QString refinedPath = cmd->DockerRemeshSurface(Path("UAC_CT/"), meshname, outname, hmax, hmin, havg, surfCorr);
 
     // Mesh Improvement: Cleaning
+    cmd->ExecuteTouch(Path("UAC_CT/") + "clean-Labelled-refined.vtk");
     cmd->DockerCleanMeshQuality(Path("UAC_CT/"), "Labelled-refined", "clean-Labelled-refined", 0.2, "vtk", "vtk_polydata");
     cmd->DockerCleanMeshQuality(Path("UAC_CT/"), "clean-Labelled-refined", "clean-Labelled-refined", 0.1, "vtk", "vtk_polydata");
 
@@ -1172,7 +1118,7 @@ void AtrialStrainMotionView::AutoLandMark() {
 
     QString outputFullPath = Path("UAC_CT/") + "prodRefinedLandmarks.txt";
     cmd->ExecuteTouch(outputFullPath);
-    cmd->DockerAtrialStrainMotion(Path("UAC_CT/"), "autoLM");
+    cmd->DockerAtrialStrainMotion(Path(), "autoLM");
 
     QFileInfo finfo(outputFullPath);
     bool fileExists = finfo.exists();
@@ -1208,7 +1154,6 @@ void AtrialStrainMotionView::UAC_Stage1(){
         return;
     }
 
-    //TODO: remove -parab_options_file ilu_cg_opts -ellip_options_file amg_cg_opts --> Unable to access file ilu_cg_opts
     MITK_INFO << "Create Laplace Solve files for LR and PA SOLVES";
     QString lr_par, pa_par;
     MITK_INFO << "TIMELOG|UacCalculation_Stage1| openCARP start";
@@ -1266,6 +1211,7 @@ void AtrialStrainMotionView::UAC_Stage2(){
     uda_par = CemrgCommonUtils::OpenCarpParamFileGenerator(directory + "/UAC_CT", carpf_ud+"_A.par", "AnteriorMesh", "", "Ant_Strength_Test_PA1");
 
     cmd->SetDockerImageOpenCarp();
+    cmd->ExecuteTouch(Path("UAC_CT/") + "Labelled_Coords_2D_Rescaling_v3_C.vtk");
 
     QString lrpLapSolve, udpLapSolve, lraLapSolve, udaLapSolve;
     lrpLapSolve = cmd->OpenCarpDocker(directory + "/UAC_CT", lrp_par, "LR_Post_UAC");
@@ -1290,4 +1236,31 @@ void AtrialStrainMotionView::UAC_Stage2(){
     QMessageBox::information(NULL, "Attention", msg.c_str());
 
     MITK_INFO << ("TIMELOG|UacCalculation_Stage2| End " + uacOutput).toStdString();
+}
+
+void AtrialStrainMotionView::CreateModel() {
+    if (!RequestProjectDirectoryFromUser()) return;
+
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+
+    // Fibre Map
+    // TODO: this might cause issue. Labelled_Endo.lon --> outputLabelled_Endo.lon
+    cmd->DockerUacFibreMappingMode(directory + "/UAC_CT", "la", "bilayer", "a", "clean-Labelled-refined", true, "output");
+
+    MITK_INFO(QFile::copy(directory + "/UAC_CT/" + "outputLabelled_Endo.lon", directory + "/UAC_CT/" + "outputLabelled_Endo_avg.lon")) << "Copied Labelled_Endo.lon";
+    MITK_INFO(QFile::copy(directory + "/UAC_CT/" + "outputLabelled_Epi.lon", directory + "/UAC_CT/" + "outputLabelled_Epi_avg.lon")) << "Copied Labelled_Epi.lon";
+
+    // generateLabelledMsh
+    cmd->ExecuteTouch(Path("UAC_CT/") + "clean-Labelled-refined-aligned.vtk");
+    cmd->DockerAtrialStrainMotion(Path(), "generateLabelledMsh");
+
+    // appendFibres
+    cmd->DockerAtrialStrainMotion(Path(), "appendFibres");
+
+    // rotateSegMsh
+    cmd->DockerAtrialStrainMotion(Path(), "rotateSegMsh");
+
+    // alignMesh
+    cmd->DockerAtrialStrainMotion(Path(), "alignMesh");
 }

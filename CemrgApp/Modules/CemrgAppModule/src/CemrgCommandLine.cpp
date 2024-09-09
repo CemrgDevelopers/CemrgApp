@@ -1451,7 +1451,7 @@ QString CemrgCommandLine::DockerCctaMultilabelSegmentation(QString dir, QString 
 
 
 void CemrgCommandLine::DockerAtrialStrainMotion(QString dir, QString function) {
-    // docker run --rm --volume=./UAC_CT:/data/UAC_CT afmotion autoLM
+    // Note: dir should be directory + "/", not director + "/UCT_CT"
     SetDockerImage("afmotion");
     QString executablePath = "";
 #if defined(__APPLE__)
@@ -1461,7 +1461,8 @@ void CemrgCommandLine::DockerAtrialStrainMotion(QString dir, QString function) {
 
     QStringList arguments;
     arguments << "run" << "--rm";
-    arguments << "--volume="+dir+":/data/UAC_CT/";
+    arguments << "--volume="+dir+"UAC_CT/:/data/UAC_CT/";
+    arguments << "--volume="+dir+"UAC_CT_aligned/:/data/UAC_CT_aligned/";
     arguments << "afmotion";
     arguments << function;
 
