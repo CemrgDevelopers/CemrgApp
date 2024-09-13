@@ -116,7 +116,7 @@ protected:
 
 
 protected slots:
-  void DoImageProcessing();
+  // Model creation pipeline
   void SegmentExtract();
   void SegmentationPostprocessing();
   void IdentifyPV();
@@ -130,6 +130,15 @@ protected slots:
   void UAC_Stage1();
   void UAC_Stage2();
   void CreateModel();
+  // motion tracking pipeline
+  void CropImage();
+  void Registration();
+  void DeformMesh();
+  void GenerateCellAreaStrains();
+  void JacobianThreshold();
+  void PlotAreaStrain();
+  void CalcFiberStrains();
+  void PlotFibersTrains();
 
 private:
   double uiMesh_th, uiMesh_bl, uiMesh_smth, uiMesh_iter;

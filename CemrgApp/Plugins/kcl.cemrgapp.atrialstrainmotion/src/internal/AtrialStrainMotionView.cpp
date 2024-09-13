@@ -129,42 +129,64 @@ void AtrialStrainMotionView::CreateQtPartControl(QWidget *parent)
   // 1: Segment and Extract
   connect(m_Controls.segment_extract, SIGNAL(clicked()), this, SLOT(SegmentExtract()));
   m_Controls.segment_extract->setStyleSheet("Text-align:left");
-  // 4. Post processing
+  // 2. Post processing
   // m_Controls.button_man4_2_postproc->setVisible(false);
   connect(m_Controls.button_man4_2_postproc, SIGNAL(clicked()), this, SLOT(SegmentationPostprocessing()));
   m_Controls.button_man4_2_postproc->setStyleSheet("Text-align:left");
-  // 5. Identify PVs
+  // 3. Identify PVs
   connect(m_Controls.button_man5_idPV, SIGNAL(clicked()), this, SLOT(IdentifyPV()));
   m_Controls.button_man5_idPV->setStyleSheet("Text-align:left");
-  // 6. Create Labelled Mesh
+  // 4. Create Labelled Mesh
   connect(m_Controls.button_man6_labelmesh, SIGNAL(clicked()), this, SLOT(CreateLabelledMesh()));
   m_Controls.button_man6_labelmesh->setStyleSheet("Text-align:left");
-  // 7. Mesh Preprocessing
+  // 5. Mesh Preprocessing
   connect(m_Controls.button_auto4_meshpreproc, SIGNAL(clicked()), this, SLOT(MeshPreprocessing()));
   m_Controls.button_auto4_meshpreproc->setStyleSheet("Text-align:left");
-  // 8. Verify Labels
+  // 6. Verify Labels
   connect(m_Controls.button_0_3_checklabels, SIGNAL(clicked()), this, SLOT(UacCalculationVerifyLabels()));
   m_Controls.button_0_3_checklabels->setStyleSheet("Text-align:left");
-  // 9. Clip PV
+  // 7. Clip PV
   connect(m_Controls.button_man8_clipPV, SIGNAL(clicked()), this, SLOT(ClipperPV()));
   m_Controls.button_man8_clipPV->setStyleSheet("Text-align:left");
-  // 10. Mesh Improvement
+  // 8. Mesh Improvement
   connect(m_Controls.btn_mesh_improvement, SIGNAL(clicked()), this, SLOT(MeshImprovement()));
   m_Controls.btn_mesh_improvement->setStyleSheet("Text-align:left");
-  // 11. Auto Landmark
+  // 9. Auto Landmark
   connect(m_Controls.autoLM, SIGNAL(clicked()), this, SLOT(AutoLandMark()));
   m_Controls.autoLM->setStyleSheet("Text-align:left");
-  // 12. UAC Stage 1
+  // 10. UAC Stage 1
   connect(m_Controls.uac_stage_1, SIGNAL(clicked()), this, SLOT(UAC_Stage1()));
   m_Controls.uac_stage_1->setStyleSheet("Text-align:left");
-  // 13. UAC Stage 2
+  // 11. UAC Stage 2
   connect(m_Controls.uac_stage_2, SIGNAL(clicked()), this, SLOT(UAC_Stage2()));
   m_Controls.uac_stage_2->setStyleSheet("Text-align:left");
-
-  // 14. Create Model
+  // 12. Create Model
   connect(m_Controls.create_model, SIGNAL(clicked()), this, SLOT(CreateModel()));
   m_Controls.create_model->setStyleSheet("Text-align:left");
-
+  // Crop Image
+  connect(m_Controls.crop_images, SIGNAL(clicked()), this, SLOT(CropImage()));
+  m_Controls.crop_images->setStyleSheet("Text-align:left");
+  // Registration
+  connect(m_Controls.registration, SIGNAL(clicked()), this, SLOT(Registration()));
+  m_Controls.registration->setStyleSheet("Text-align:left");
+  // Deform Mesh
+  connect(m_Controls.deform_mesh, SIGNAL(clicked()), this, SLOT(DeformMesh()));
+  m_Controls.deform_mesh->setStyleSheet("Text-align:left");
+  // Generate Cell Area Strains
+  connect(m_Controls.generate_cell_area_strains, SIGNAL(clicked()), this, SLOT(GenerateCellAreaStrains()));
+  m_Controls.generate_cell_area_strains->setStyleSheet("Text-align:left");
+  // Jacobian Threshold
+  connect(m_Controls.jacobian_threshold, SIGNAL(clicked()), this, SLOT(JacobianThreshold()));
+  m_Controls.jacobian_threshold->setStyleSheet("Text-align:left");
+  // Plot Area Strain
+  connect(m_Controls.plot_area_strain, SIGNAL(clicked()), this, SLOT(PlotAreaStrain()));
+  m_Controls.plot_area_strain->setStyleSheet("Text-align:left");
+  // Calculate Fiber Strain
+  connect(m_Controls.calc_fiber_strains, SIGNAL(clicked()), this, SLOT(CalcFiberStrains()));
+  m_Controls.calc_fiber_strains->setStyleSheet("Text-align:left");
+  // Plot Fiber Strain
+  connect(m_Controls.plot_fibers_trains, SIGNAL(clicked()), this, SLOT(PlotFibersTrains()));
+  m_Controls.plot_fibers_trains->setStyleSheet("Text-align:left");
 
 
   // Set default variables
@@ -197,47 +219,6 @@ void AtrialStrainMotionView::OnSelectionChanged(berry::IWorkbenchPart::Pointer /
   m_Controls.segment_extract->setEnabled(true);
 
    */
-}
-
-void AtrialStrainMotionView::DoImageProcessing()
-{
-  QList<mitk::DataNode::Pointer> nodes = this->GetDataManagerSelection();
-  if (nodes.empty())
-    return;
-
-  mitk::DataNode *node = nodes.front();
-
-  if (!node)
-  {
-    // Nothing selected. Inform the user and return
-    QMessageBox::information(nullptr, "Template", "Please load and select an image before starting image processing.");
-    return;
-  }
-
-  // here we have a valid mitk::DataNode
-
-  // a node itself is not very useful, we need its data item (the image)
-  mitk::BaseData *data = node->GetData();
-  if (data)
-  {
-    // test if this data item is an image or not (could also be a surface or something totally different)
-    mitk::Image *image = dynamic_cast<mitk::Image *>(data);
-    if (image)
-    {
-      std::stringstream message;
-      std::string name;
-      message << "Performing image processing for image ";
-      if (node->GetName(name))
-      {
-        // a property called "name" was found for this DataNode
-        message << "'" << name << "'";
-      }
-      message << ".";
-      MITK_INFO << message.str();
-
-      // actually do something here...
-    }
-  }
 }
 
 bool AtrialStrainMotionView::GetUserAnalysisSelectorInputs(){
@@ -744,6 +725,11 @@ bool AtrialStrainMotionView::RequestProjectDirectoryFromUser() {
 void AtrialStrainMotionView::SegmentExtract() {
     if (!RequestProjectDirectoryFromUser()) return; // if the path was chosen incorrectly -> returns.
 
+    QDir q_directory(directory);
+    q_directory.mkdir("UAC_CT") ? MITK_INFO << "UAC_CT created" : MITK_INFO << "UAC_CT exists";
+    q_directory.mkdir("UAC_CT_aligned") ? MITK_INFO << "UAC_CT_aligned created" : MITK_INFO << "UAC_CT_aligned exists";
+    q_directory.mkdir("tracking") ? MITK_INFO << "tracking folder created" : MITK_INFO << "tracking folder exists";
+
     // copy the first image and segment it
     QDir nifti_dir = QDir(directory + "/nifti/");
     QString input_file_name = nifti_dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot)[0];
@@ -752,12 +738,14 @@ void AtrialStrainMotionView::SegmentExtract() {
 
     MITK_INFO(QFile::copy(nifti_dir.absolutePath() + "/" + input_file_name, input_file_path)) << "Copied " << input_file_name;
 
+    // extract LA
     std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
     cmd->SetUseDockerContainers(true);
     QString pathToSegmentation = cmd->DockerCctaMultilabelSegmentation(directory, input_file_path, false);
     MITK_INFO << pathToSegmentation;
 
-    // extract LA
+    // cmd->DockerAtrialStrainMotion(directory, "fix_vtk_metadata");
+
     mitk::Image::Pointer segmentation = mitk::IOUtil::Load<mitk::Image>(pathToSegmentation.toStdString());
 
     if (!segmentation) return ;
@@ -786,10 +774,6 @@ void AtrialStrainMotionView::SegmentExtract() {
 
     // mitk::Surface::Pointer la_msh = mitk::IOUtil::Load<mitk::Surface>(la_msh_path.toStdString());
     // CemrgCommonUtils::AddToStorage(la_msh, "la_msh", this->GetDataStorage());
-
-    QDir q_directory(directory);
-    q_directory.mkdir("UAC_CT") ? MITK_INFO << "UAC_CT created" : MITK_INFO << "UAC_CT exists";
-    q_directory.mkdir("UAC_CT_aligned") ? MITK_INFO << "UAC_CT_aligned created" : MITK_INFO << "UAC_CT_aligned exists";
 
     MITK_INFO(QFile::copy(la_msh_path, directory + "/UAC_CT" + "/LA_msh.vtk")) << "Copied LA_msh.vtk";
 
@@ -821,6 +805,7 @@ void AtrialStrainMotionView::SegmentExtract() {
         CemrgCommonUtils::AddToStorage(im, tagName.toStdString(), this->GetDataStorage());
 
     }
+
 }
 
 void AtrialStrainMotionView::SegmentationPostprocessing(){
@@ -1253,6 +1238,7 @@ void AtrialStrainMotionView::CreateModel() {
 
     // generateLabelledMsh
     cmd->ExecuteTouch(Path("UAC_CT/") + "clean-Labelled-refined-aligned.vtk");
+    cmd->ExecuteTouch(Path("UAC_CT/") + "clean-Labelled-refined-aligned.vtp");
     cmd->DockerAtrialStrainMotion(Path(), "generateLabelledMsh");
 
     // appendFibres
@@ -1264,3 +1250,74 @@ void AtrialStrainMotionView::CreateModel() {
     // alignMesh
     cmd->DockerAtrialStrainMotion(Path(), "alignMesh");
 }
+
+
+
+
+void AtrialStrainMotionView::CropImage() {
+    MITK_INFO << "crop image";
+    // TODO: automate finding x_start, y_start, z_start ...
+    if (!RequestProjectDirectoryFromUser()) return;
+
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+
+    for (int frame = 0; frame <= 20; frame ++) {
+        QString cropped_img_name = "dcm-crop-" + QString::number(frame) + ".nii";
+        cmd->ExecuteTouch(Path("nifti/") + cropped_img_name);
+    }
+
+    cmd->DockerAtrialStrainMotion(Path(), "cropImages");
+}
+
+void AtrialStrainMotionView::Registration() {
+    MITK_INFO << "Registration";
+    if (!RequestProjectDirectoryFromUser()) return;
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+
+    cmd->ExecuteTouch(Path("tracking/") + "Final.cfg");
+    cmd->ExecuteTouch(Path("tracking/") + "imgTimes.lst");
+
+    cmd->DockerAtrialStrainMotion(Path(), "registration");
+
+    cmd->ExecuteTracking(Path(), Path("tracking/imgTimes.lst"), Path("tracking/Final.cfg"), Path("tracking/tsffd.dof"));
+}
+
+void AtrialStrainMotionView::DeformMesh() {
+    MITK_INFO << "DeformMesh";
+    if (!RequestProjectDirectoryFromUser()) return;
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+    for (int frame = 0; frame < 10; frame ++) {
+        cmd->ExecuteTransformationOnPoints(directory,
+                                           Path("UAC_CT/clean-Labelled-refined-aligned.vtp"),
+                                           QString("tracking/cLr-aligned-") + QString::number(frame) + ".vtp",
+                                           QString("tracking/tsffd.dof"),
+                                           frame * 10);
+    }
+
+
+}
+
+void AtrialStrainMotionView::GenerateCellAreaStrains() {
+    MITK_INFO << "GenerateCellAreaStrains";
+}
+
+void AtrialStrainMotionView::JacobianThreshold() {
+    MITK_INFO << "JacobianThreshold";
+}
+
+void AtrialStrainMotionView::PlotAreaStrain() {
+    MITK_INFO << "PlotAreaStrain";
+}
+
+void AtrialStrainMotionView::CalcFiberStrains() {
+    MITK_INFO << "CalcFiberStrains";
+}
+
+void AtrialStrainMotionView::PlotFibersTrains() {
+    MITK_INFO << "PlotFibersTrains";
+}
+
+

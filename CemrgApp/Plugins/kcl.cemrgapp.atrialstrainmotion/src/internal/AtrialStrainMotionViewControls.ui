@@ -115,6 +115,62 @@
     </widget>
    </item>
    <item>
+    <widget class="QPushButton" name="crop_images">
+     <property name="text">
+      <string>Crop Images</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="registration">
+     <property name="text">
+      <string>registration</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="deform_mesh">
+     <property name="text">
+      <string>Deform Mesh</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="generate_cell_area_strains">
+     <property name="text">
+      <string>Generate Cell Area Strains</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="jacobian_threshold">
+     <property name="text">
+      <string>jacobianThreshold</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="plot_area_strain">
+     <property name="text">
+      <string>plotAreaStrain</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="calc_fiber_strains">
+     <property name="text">
+      <string>Calc Fiber Strains</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="plot_fibers_trains">
+     <property name="text">
+      <string>plot Fiber Strains</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="spacer1">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

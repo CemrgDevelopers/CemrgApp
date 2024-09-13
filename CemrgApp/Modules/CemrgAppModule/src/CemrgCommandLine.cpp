@@ -38,6 +38,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include <QDebug>
 #include <QDir>
 #include <QMessageBox>
+#include <QThread>
 
 // C++ Standard
 #include <thread>
@@ -189,12 +190,13 @@ void CemrgCommandLine::ExecuteTracking(QString dir, QString imgTimes, QString pa
     QStringList arguments;
 
     if (apathd.exists()) {
-
+        QString threads = QString::number(QThread::idealThreadCount());
+        MITK_INFO << "Using " << threads.toStdString() << " CPU cores";
         process->setWorkingDirectory(executablePath);
         arguments << "-images" << imgTimesFilePath;
         if (!param.isEmpty()) arguments << "-parin" << param;
         arguments << "-dofout" << outAbsolutePath;
-        arguments << "-threads" << "12";
+        arguments << "-threads" << threads;
         arguments << "-verbose" << "3";
 
     } else {
@@ -1461,10 +1463,12 @@ void CemrgCommandLine::DockerAtrialStrainMotion(QString dir, QString function) {
 
     QStringList arguments;
     arguments << "run" << "--rm";
-    arguments << "--volume="+dir+"UAC_CT/:/data/UAC_CT/";
-    arguments << "--volume="+dir+"UAC_CT_aligned/:/data/UAC_CT_aligned/";
+    arguments << "--volume="+dir+"/:/data/";
+    // arguments << "--volume="+dir+"UAC_CT/:/data/UAC_CT/";
+    // arguments << "--volume="+dir+"UAC_CT_aligned/:/data/UAC_CT_aligned/";
     arguments << "afmotion";
     arguments << function;
+    arguments << dir;
 
     ExecuteCommand(executableName, arguments, "", false);
     /***
