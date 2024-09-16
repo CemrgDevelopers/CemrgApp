@@ -1301,23 +1301,66 @@ void AtrialStrainMotionView::DeformMesh() {
 }
 
 void AtrialStrainMotionView::GenerateCellAreaStrains() {
+    if (!RequestProjectDirectoryFromUser()) return;
+
     MITK_INFO << "GenerateCellAreaStrains";
+
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+
+    for (int frame = 0; frame < 10; frame ++) {
+        QString clr_aligned = "cLr-aligned-" + QString::number(frame) + "-areas.txt";
+        cmd->ExecuteTouch(Path("tracking/") + clr_aligned);
+
+        QString area_strains = "area-strains-" + QString::number(frame) + ".csv";
+        cmd->ExecuteTouch(Path("tracking/") + area_strains);
+    }
+
+    cmd->DockerAtrialStrainMotion(Path(), "generateCellAreaStrains");
 }
 
 void AtrialStrainMotionView::JacobianThreshold() {
     MITK_INFO << "JacobianThreshold";
+
+    if (!RequestProjectDirectoryFromUser()) return;
+
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+
+    for (int frame = 1; frame < 10; frame ++) {
+        QString clr_aligned = "cLr-fibres-aligned-" + QString::number(frame) + "-scal_jacob-thr0.2.txt";
+        cmd->ExecuteTouch(Path("tracking/") + clr_aligned);
+    }
+
+
+    cmd->DockerAtrialStrainMotion(Path(), "jacobianThreshold");
 }
 
 void AtrialStrainMotionView::PlotAreaStrain() {
+    if (!RequestProjectDirectoryFromUser()) return;
+
     MITK_INFO << "PlotAreaStrain";
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+    cmd->DockerAtrialStrainMotion(Path(), "plotAreaStrain");
 }
 
 void AtrialStrainMotionView::CalcFiberStrains() {
+    if (!RequestProjectDirectoryFromUser()) return;
+
     MITK_INFO << "CalcFiberStrains";
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+    cmd->DockerAtrialStrainMotion(Path(), "calcFiberStrains");
 }
 
 void AtrialStrainMotionView::PlotFibersTrains() {
+    if (!RequestProjectDirectoryFromUser()) return;
+
     MITK_INFO << "PlotFibersTrains";
+    std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
+    cmd->SetUseDockerContainers(true);
+    cmd->DockerAtrialStrainMotion(Path(), "plotFiberStrains");
 }
 
 

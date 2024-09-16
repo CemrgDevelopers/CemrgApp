@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>281</width>
-    <height>555</height>
+    <height>790</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -117,56 +117,56 @@
    <item>
     <widget class="QPushButton" name="crop_images">
      <property name="text">
-      <string>Crop Images</string>
+      <string>13. Crop Images</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="registration">
      <property name="text">
-      <string>registration</string>
+      <string>14. registration</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="deform_mesh">
      <property name="text">
-      <string>Deform Mesh</string>
+      <string>15. Deform Mesh</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="generate_cell_area_strains">
      <property name="text">
-      <string>Generate Cell Area Strains</string>
+      <string>16. Generate Cell Area Strains</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="jacobian_threshold">
      <property name="text">
-      <string>jacobianThreshold</string>
+      <string>17. jacobianThreshold</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="plot_area_strain">
      <property name="text">
-      <string>plotAreaStrain</string>
+      <string>18. plotAreaStrain</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="calc_fiber_strains">
      <property name="text">
-      <string>Calc Fiber Strains</string>
+      <string>19. Calc Fiber Strains</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="plot_fibers_trains">
      <property name="text">
-      <string>plot Fiber Strains</string>
+      <string>20. plot Fiber Strains</string>
      </property>
     </widget>
    </item>
