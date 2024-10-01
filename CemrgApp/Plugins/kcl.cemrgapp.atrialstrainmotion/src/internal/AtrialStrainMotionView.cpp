@@ -113,6 +113,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CemrgMeasure.h>
 #include <CemrgScar3D.h>
 #include "CemrgMultilabelSegmentationUtils.h"
+#include <itkLabelStatisticsImageFilter.h>
 
 
 const std::string AtrialStrainMotionView::VIEW_ID = "org.mitk.views.atrialstrainmotionview";
@@ -1262,12 +1263,61 @@ void AtrialStrainMotionView::CropImage() {
     std::unique_ptr<CemrgCommandLine> cmd(new CemrgCommandLine());
     cmd->SetUseDockerContainers(true);
 
-    for (int frame = 0; frame <= 20; frame ++) {
-        QString cropped_img_name = "dcm-crop-" + QString::number(frame) + ".nii";
-        cmd->ExecuteTouch(Path("nifti/") + cropped_img_name);
+    QDir nifti_dir = QDir(directory + "/nifti/");
+    // QString input_file_name = nifti_dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot)[8];
+    QString input_file_path = directory + "/" + "dcm-10.nii";
+    MITK_INFO << input_file_path.toStdString();
+
+    MITK_INFO(QFile::copy(nifti_dir.absolutePath() + "/" + "dcm-10.nii", input_file_path)) << "Copied " << "dcm-10.nii";
+    QString pathToSegmentation = cmd->DockerCctaMultilabelSegmentation(directory, input_file_path, false);
+    mitk::Image::Pointer segmentation = mitk::IOUtil::Load<mitk::Image>(pathToSegmentation.toStdString());
+    std::unique_ptr<CemrgMultilabelSegmentationUtils> cmls(new CemrgMultilabelSegmentationUtils());
+    segmentation = cmls->ReplaceLabel(segmentation, 8, 4);
+    segmentation = cmls->ReplaceLabel(segmentation, 9, 4);
+    segmentation = cmls->ReplaceLabel(segmentation, 10, 4);
+
+    using LabelStatisticsFilterType = itk::LabelStatisticsImageFilter<ImageType, ImageType>;
+    ImageType::Pointer itkImage = ImageType::New();
+    mitk::CastToItkImage(segmentation, itkImage);
+    LabelStatisticsFilterType::Pointer labelStats = LabelStatisticsFilterType::New();
+    labelStats->SetInput(itkImage);
+    labelStats->SetLabelInput(itkImage); // Use the segmentation image as label
+    labelStats->Update();
+
+    LabelStatisticsFilterType::LabelPixelType labelValue = 4;
+    LabelStatisticsFilterType::BoundingBoxType bb = labelStats->GetBoundingBox(labelValue);
+
+     std::vector<int> cogIndx{};
+     for (int ix = 1; ix <= 6; ix++) {
+         int value = bb[ix - 1];
+         if (ix % 2 == 0) {
+             int max_value = value + value * 0.3;
+             std::cout << max_value << std::endl;
+             cogIndx.push_back(max_value);
+         }
+         else {
+             int min_value = value - value * 0.3;
+             std::cout << min_value << std::endl;
+             cogIndx.push_back(min_value);
+         }
     }
 
-    cmd->DockerAtrialStrainMotion(Path(), "cropImages");
+    for (auto & c1 : cogIndx)
+        std::cout << c1 << " ";
+    std::cout << std::endl;
+    for (auto & c : bb)
+        std::cout << c << " ";
+    std::cout << std::endl;
+
+
+
+
+    // for (int frame = 0; frame <= 20; frame ++) {
+    //     QString cropped_img_name = "dcm-crop-" + QString::number(frame) + ".nii";
+    //    cmd->ExecuteTouch(Path("nifti/") + cropped_img_name);
+    // }
+
+    // cmd->DockerAtrialStrainMotion(Path(), "cropImages");
 }
 
 void AtrialStrainMotionView::Registration() {
