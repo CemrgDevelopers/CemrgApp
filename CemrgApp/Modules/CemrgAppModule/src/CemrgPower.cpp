@@ -449,7 +449,7 @@ mitk::Surface::Pointer CemrgPower::ReferenceAHA(
         //Calcaulte a circle through the mitral valve points
         centre = Circlefit3d(ZeroPoint(APEX, MIV1), ZeroPoint(APEX, MIV2), ZeroPoint(APEX, MIV3));
         // Zero all points relative to apex
-    } else { // which means  (LandMarks.size() == 4)
+    } else if (LandMarks.size() == 4) {
         APEX = LandMarks.at(0);
         RIV1 = LandMarks.at(2);
         RIV2 = LandMarks.at(3);

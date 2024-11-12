@@ -465,8 +465,7 @@ void CemrgScarAdvanced::ExtractCorridorData(
     p2c->Update();
 
     vtkSmartPointer<vtkThreshold> threshold = vtkSmartPointer<vtkThreshold>::New();
-    threshold->SetThresholdFunction(vtkThreshold::THRESHOLD_UPPER);
-    threshold->SetUpperThreshold(_fill_threshold);
+    threshold->ThresholdByUpper(_fill_threshold);
     threshold->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
     threshold->SetInputData(p2c->GetPolyDataOutput());
     threshold->Update();

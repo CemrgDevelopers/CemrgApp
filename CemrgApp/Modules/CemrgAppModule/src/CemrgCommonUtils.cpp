@@ -96,6 +96,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include <QJsonParseError>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QJsonValue>
 
 #include "CemrgCommonUtils.h"
 
@@ -199,7 +200,7 @@ mitk::Image::Pointer CemrgCommonUtils::Downsample(mitk::Image::Pointer image, in
     return image;
 }
 
-mitk::Image::Pointer CemrgCommonUtils::IsoImageResampleReorient(mitk::Image::Pointer image, bool resample, bool reorientToRAI, bool isBinary) {
+mitk::Image::Pointer CemrgCommonUtils::IsoImageResampleReorient(mitk::Image::Pointer image, bool resample, bool reorientToRAI, bool isBinary, std::vector<double> spacing) {
 
     MITK_INFO(resample) << "Resampling image to be isometric.";
     MITK_INFO(reorientToRAI) << "Doing a reorientation to RAI.";
@@ -213,12 +214,12 @@ mitk::Image::Pointer CemrgCommonUtils::IsoImageResampleReorient(mitk::Image::Poi
     if (resample) {
         ResampleImageFilterType::Pointer resampler = ResampleImageFilterType::New();
 
-        if(isBinary){
+        if(!isBinary){ // if not binary, use B-Spline interpolation
             typedef itk::BSplineInterpolateImageFunction<ImageType, double, double> BSplineInterpolatorType;
             BSplineInterpolatorType::Pointer bsplineInterp = BSplineInterpolatorType::New();
             bsplineInterp->SetSplineOrder(3);
             resampler->SetInterpolator(bsplineInterp);
-        } else{
+        } else{ // if binary, use nearest neighbor interpolation
             typedef itk::NearestNeighborInterpolateImageFunction<ImageType, double> NearestInterpolatorType;
             NearestInterpolatorType::Pointer nnInterp = NearestInterpolatorType::New();
             resampler->SetInterpolator(nnInterp);
@@ -230,12 +231,10 @@ mitk::Image::Pointer CemrgCommonUtils::IsoImageResampleReorient(mitk::Image::Poi
         ImageType::SpacingType input_spacing = itkInputImage->GetSpacing();
         ImageType::SizeType output_size;
         ImageType::SpacingType output_spacing;
-        output_size[0] = input_size[0] * (input_spacing[0] / 1.0);
-        output_size[1] = input_size[1] * (input_spacing[1] / 1.0);
-        output_size[2] = input_size[2] * (input_spacing[2] / 1.0);
-        output_spacing[0] = 1.0;
-        output_spacing[1] = 1.0;
-        output_spacing[2] = 1.0;
+        for (int i = 0; i < 3; ++i) {
+            output_size[i] = input_size[i] * (input_spacing[i] / spacing[i]);
+            output_spacing[i] = spacing[i];
+        }//_for
         resampler->SetSize(output_size);
         resampler->SetOutputSpacing(output_spacing);
         resampler->SetOutputDirection(itkInputImage->GetDirection());
@@ -264,9 +263,9 @@ mitk::Image::Pointer CemrgCommonUtils::IsoImageResampleReorient(mitk::Image::Poi
     return image;
 }
 
-mitk::Image::Pointer CemrgCommonUtils::IsoImageResampleReorient(QString imPath, bool resample,  bool reorientToRAI, bool isBinary) {
+mitk::Image::Pointer CemrgCommonUtils::IsoImageResampleReorient(QString imPath, bool resample,  bool reorientToRAI, bool isBinary, std::vector<double> spacing) {
 
-    return CemrgCommonUtils::IsoImageResampleReorient(mitk::IOUtil::Load<mitk::Image>(imPath.toStdString()), resample, reorientToRAI, isBinary);
+    return CemrgCommonUtils::IsoImageResampleReorient(mitk::IOUtil::Load<mitk::Image>(imPath.toStdString()), resample, reorientToRAI, isBinary, spacing);
 }
 
 void CemrgCommonUtils::Binarise(mitk::Image::Pointer image, float background){
@@ -1023,6 +1022,18 @@ mitk::DataNode::Pointer CemrgCommonUtils::AddToStorage(
     return node;
 }
 
+mitk::DataNode::Pointer CemrgCommonUtils::UpdateFromStorage(
+    mitk::BaseData *data, std::string nodeName, mitk::DataStorage::Pointer ds){
+    
+    mitk::DataStorage::SetOfObjects::ConstPointer sob = ds->GetAll();
+    for (mitk::DataStorage::SetOfObjects::ConstIterator nodeIt = sob->Begin(); nodeIt != sob->End(); ++nodeIt) {
+        if (nodeIt->Value()->GetName().find(nodeName) != nodeIt->Value()->GetName().npos)
+            ds->Remove(nodeIt->Value());
+    } //_for
+
+    return AddToStorage(data, nodeName, ds);
+}
+
 QJsonObject CemrgCommonUtils::ReadJSONFile(QString dir, QString fname) {
     fname += (!fname.endsWith(".json")) ? ".json" : "";
     QFile file(dir + "/" + fname);
@@ -1112,6 +1123,29 @@ bool CemrgCommonUtils::ModifyJSONFile(QString dir, QString fname, QString key, Q
     return success;
 }
 
+void CemrgCommonUtils::PrintJSON(QJsonObject json, QString title) {
+    MITK_INFO << title.toStdString();
+    std::cout << "----------------------------------------"<< '\n';
+    QStringList keys = json.keys();
+    for (int i = 0; i < keys.size(); i++) {
+        QString key = keys.at(i);
+        QString value = "";
+        if (json[key].isArray()) {
+            QJsonArray array = json[key].toArray();
+            for (int ix = 0; ix < array.size(); ix++) {
+                value += QString::number(array.at(ix).toDouble()) + ", ";
+            }
+        }
+        else
+        {
+            value = json[key].toString();
+        }
+
+        std::cout << key.toStdString() << " : " << value.toStdString() << '\n';
+    }
+    std::cout << "----------------------------------------"<< '\n';
+}
+
 QJsonObject CemrgCommonUtils::CreateJSONObject(QStringList keys_list, QStringList values_list, QStringList types_list) {
     QJsonObject jsonObj;
 
@@ -1153,6 +1187,26 @@ QJsonObject CemrgCommonUtils::CreateJSONObject(QStringList keys_list, QStringLis
     }
 
     return jsonObj;
+}
+
+QJsonArray CemrgCommonUtils::CreateJSONArrayDouble(std::vector<double> values) {
+    QJsonArray json_array;
+
+    for (long unsigned int ix = 0; ix < values.size(); ix++) {
+        json_array.push_back(values.at(ix));
+    }
+
+    return json_array;
+}
+
+QJsonArray CemrgCommonUtils::CreateJSONArrayUInt(std::vector<unsigned int> values) {
+    QJsonArray json_array;
+
+    for (long unsigned int ix = 0; ix < values.size(); ix++) {
+        json_array.push_back(static_cast<int>(values.at(ix)));
+    }
+
+    return json_array;
 }
 
 mitk::Image::Pointer CemrgCommonUtils::ImageFromSurfaceMesh(mitk::Surface::Pointer surf, double origin[3], double spacing[3]){
@@ -1836,4 +1890,99 @@ void CemrgCommonUtils::VtkPointScalarToFile(QString vtkPath, QString outPath, QS
 
 void CemrgCommonUtils::VtkCellScalarToFile(QString vtkPath, QString outPath, QString fieldName){
     VtkScalarToFile(vtkPath, outPath, fieldName, true);
+}
+
+QString CemrgCommonUtils::ConvertToInr(mitk::Image::Pointer image, bool convert2uint, QString dir, QString output_name){
+    if (!output_name.contains(".inr", Qt::CaseSensitive)){
+        output_name += ".inr";
+    }
+    QString res = "";
+
+    if (image){
+        // mitk::Point3D origin = image->GetGeometry()->GetOrigin();
+        int dimensions = image->GetDimension(0) * image->GetDimension(1) * image->GetDimension(2);
+        try {
+            if (convert2uint){
+                MITK_INFO << "Convert image to uint8_t";
+                MITK_INFO << "Pixel type: " << image->GetPixelType().GetComponentTypeAsString();
+                itk::Image<uint8_t, 3>::Pointer itkImage = itk::Image<uint8_t, 3>::New();
+                mitk::CastToItkImage(image, itkImage);
+                mitk::Image::Pointer uint8Image = mitk::ImportItkImage(itkImage);
+                image = uint8Image;
+            }
+
+            MITK_INFO << "Access image volume";
+            mitk::ImagePixelReadAccessor<uint8_t, 3> readAccess(image);
+            uint8_t* pv = (uint8_t*)readAccess.GetData();
+
+            MITK_INFO << "Prepare header for INR file";
+
+            char header[256] = {};
+            int bitlength = 8;
+            const char* btype = "unsigned fixed";
+            mitk::Vector3D spacing = image->GetGeometry()->GetSpacing();
+            int n = sprintf(header, "#INRIMAGE-4#{\nXDIM=%d\nYDIM=%d\nZDIM=%d\nVDIM=1\nTYPE=%s\nPIXSIZE=%d bits\nCPU=decm\nVX=%6.4f\nVY=%6.4f\nVZ=%6.4f\n", image->GetDimension(0), image->GetDimension(1), image->GetDimension(2), btype, bitlength, spacing.GetElement(0), spacing.GetElement(1), spacing.GetElement(2));
+            for (int i = n; i < 252; i++) {
+                header[i] = '\n';
+            }
+
+            header[252] = '#';
+            header[253] = '#';
+            header[254] = '}';
+            header[255] = '\n';
+
+            MITK_INFO << "Write to binary file";
+            std::string path = (dir + "/" + output_name).toStdString();
+            std::ofstream myFile(path, ios::out | ios::binary);
+            myFile.write((char*)header, 256 * sizeof(char));
+            myFile.write((char*)pv, dimensions * sizeof(uint8_t));
+            myFile.close();
+
+       res = QString::fromStdString(path);
+
+        } catch (mitk::Exception&) {
+            MITK_ERROR << "Problems creating the file";
+            return "";
+        }
+    }
+    return res;
+}
+
+QString CemrgCommonUtils::ConvertToInr(QString dir, QString filename, bool convert2uint, QString output_name){
+    QString path = dir + "/" + filename;
+    QFileInfo fi(path);
+    if(output_name.isEmpty()){
+        output_name = fi.baseName() + ".inr";
+    }
+
+    mitk::Image::Pointer im = mitk::IOUtil::Load<mitk::Image>(path.toStdString());
+
+    return CemrgCommonUtils::ConvertToInr(im, convert2uint, dir, output_name);
+}
+
+mitk::Image::Pointer CemrgCommonUtils::SwapAxes(mitk::Image::Pointer image, const std::vector<int>& orderDimensions) {
+    // Define the pixel type and dimension for the ITK image
+    using PixelType = uint8_t;
+    constexpr unsigned int Dimension = 3;
+    using ImageType = itk::Image<PixelType, Dimension>;
+    using PermuteAxesFilterType = itk::PermuteAxesImageFilter<ImageType>;
+    //using FlipImageFilterType = itk::FlipImageFilter<ImageType>;
+
+    // Convert MITK image to ITK image
+    ImageType::Pointer itkImage = ImageType::New();
+    mitk::CastToItkImage(image, itkImage);
+
+    // Create and configure the PermuteAxes filter
+    PermuteAxesFilterType::Pointer permuteFilter = PermuteAxesFilterType::New();
+    permuteFilter->SetInput(itkImage);
+
+    PermuteAxesFilterType::PermuteOrderArrayType order;
+    for (unsigned int i = 0; i < Dimension; ++i) {
+        order[i] = orderDimensions[i];
+    }
+    permuteFilter->SetOrder(order);
+    permuteFilter->Update();
+
+    mitk::Image::Pointer outputImage = mitk::ImportItkImage(permuteFilter->GetOutput())->Clone();
+    return outputImage;
 }

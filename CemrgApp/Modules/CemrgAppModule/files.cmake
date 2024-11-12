@@ -9,6 +9,11 @@ set(CPP_FILES
     CemrgAtrialTools.cpp
     CemrgScarAdvanced.cpp
     CemrgTests.cpp
+    CemrgFourChamberTools.cpp
+    CemrgFourChamberCmd.cpp
+    CemrgMultilabelSegmentationUtils.cpp
+    #    CemrgMeshPointSelector.cpp
+    CemrgAtrialModellingToolCmd.cpp
 )
 
 set(UI_FILES
@@ -24,6 +29,12 @@ set(MOC_H_FILES
   include/CemrgStrains.h
   include/CemrgPower.h
   include/CemrgScarAdvanced.h
+  include/CemrgMultilabelSegmentationUtils.h
+  include/CemrgAtrialModellingToolCmd.h
+  include/CemrgFourChamberTools.h
+  include/CemrgFourChamberCmd.h
+  #  include/CemrgMeshPointSelector.h
+  include/FourChamberCommon.h
 )
 
 set(RESOURCE_FILES

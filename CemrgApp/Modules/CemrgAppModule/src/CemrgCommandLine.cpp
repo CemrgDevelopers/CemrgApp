@@ -38,6 +38,8 @@ PURPOSE.  See the above copyright notices for more information.
 #include <QDebug>
 #include <QDir>
 #include <QMessageBox>
+#include <QProcessEnvironment>
+#include <QThread>
 
 // C++ Standard
 #include <thread>
@@ -68,6 +70,8 @@ CemrgCommandLine::CemrgCommandLine() {
     dial->show();
 
     //Setup the process
+    numThreads = QThread::idealThreadCount(); 
+
     process = std::unique_ptr<QProcess>(new QProcess(this));
     process->setProcessChannelMode(QProcess::MergedChannels);
     connect(process.get(), SIGNAL(readyReadStandardOutput()), this, SLOT(UpdateStdText()));
@@ -82,6 +86,17 @@ CemrgCommandLine::~CemrgCommandLine() {
     panel->deleteLater();
     layout->deleteLater();
 }
+
+  std::vector<std::string> CemrgCommandLine::GetClassHierarchy() const {
+      std::vector<std::string> hierarchy;
+      // Add the class hierarchy, starting from the base class to derived classes
+      hierarchy.push_back("CemrgCommandLine");
+      return hierarchy;
+  }
+  
+  const char* CemrgCommandLine::GetNameOfClass() const {
+      return "CemrgCommandLine";
+  }
 
 QDialog* CemrgCommandLine::GetDialog() {
 
@@ -122,13 +137,13 @@ QString CemrgCommandLine::ExecuteSurf(QString dir, QString segPath, QString morp
     return outAbsolutePath;
 }
 
-QString CemrgCommandLine::ExecuteCreateCGALMesh(QString dir, QString outputName, QString paramsFullPath, QString segmentationName) {
+QString CemrgCommandLine::ExecuteCreateCGALMesh(QString dir, QString outputName, QString paramsFullPath, QString segmentationName, QString outputFolder, QString outputExtension) {
 
     MITK_INFO << "[ATTENTION] Attempting MeshTools3D libraries.";
 
     QString segmentationDirectory = dir + "/";
-    QString outputDirectory = segmentationDirectory + "CGALMeshDir";
-    QString outAbsolutePath = outputDirectory + "/" + outputName + ".vtk"; // many outputs are created with meshtools3d. .vtk is the one used in CemrgApp
+    QString outputDirectory = segmentationDirectory + outputFolder;
+    QString outAbsolutePath = outputDirectory + "/" + outputName + "." + outputExtension; // many outputs are created with meshtools3d. .vtk is the one used in CemrgApp
 
     MITK_INFO << "Using static MeshTools3D libraries.";
     QString executablePath = QCoreApplication::applicationDirPath() + "/M3DLib";
@@ -140,7 +155,7 @@ QString CemrgCommandLine::ExecuteCreateCGALMesh(QString dir, QString outputName,
 
         process->setWorkingDirectory(executablePath);
         arguments << "-f" << paramsFullPath;
-        arguments << "-seg_dir" << segmentationDirectory;;
+        arguments << "-seg_dir" << segmentationDirectory;
         arguments << "-seg_name" << segmentationName;
         arguments << "-out_dir" << outputDirectory;
         arguments << "-out_name" << outputName;
@@ -151,10 +166,18 @@ QString CemrgCommandLine::ExecuteCreateCGALMesh(QString dir, QString outputName,
     }//_if
 
     //Setup EnVariable - in windows TBB_NUM_THREADS should be set in the system environment variables
-#ifndef _WIN32
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("TBB_NUM_THREADS","12");
-    process->setProcessEnvironment(env);
+    int numThreads = QThread::idealThreadCount();
+    QString numThreadsStr = QString::number(numThreads);
+    MITK_INFO << "Number of threads: " + numThreadsStr.toStdString();
+
+#if defined(_WIN32) || defined(_WIN64)
+    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+    environment.insert("TBB_NUM_THREADS", "12");
+    process->setProcessEnvironment(environment);
+#else 
+    QStringList environment = QProcess::systemEnvironment();
+    environment << "TBB_NUM_THREADS=12";
+    process->setEnvironment(environment);
 #endif
 
     bool successful = ExecuteCommand(executableName, arguments, outAbsolutePath);
@@ -1089,6 +1112,41 @@ void CemrgCommandLine::DockerCleanMeshQuality(QString dir, QString meshname, QSt
     // return outAbsolutePath;
 }
 
+QString CemrgCommandLine::DockerCctaMultilabelSegmentation(QString dir, QString path_to_f, bool saveas_nifti) {
+    SetDockerImage("cemrg/ccta:latest");
+    QString executablePath = "";
+#if defined(__APPLE__)
+    executablePath = "/usr/local/bin/";
+#endif
+    QString executableName = executablePath + "docker";
+
+    QDir home(dir);
+    QFileInfo fi(path_to_f);
+    QString outname = fi.baseName();
+    outname += "_label_maps.nii.gz";
+
+    QStringList arguments = GetDockerArguments(home.absolutePath());
+    arguments << "--filename" << home.relativeFilePath(path_to_f);
+    arguments << "--device" << "cpu";
+    if (saveas_nifti) {
+        arguments << "--saveas-nifti";
+    }
+
+    QString outPath = home.absolutePath() + "/" + outname;
+
+    bool successful = ExecuteCommand(executableName, arguments, outPath);
+
+    QString res="";
+    if (successful) {
+        MITK_INFO << "Successful mutilabel segmentation";
+        res = outPath;
+    } else {
+        MITK_WARN << "Unsuccessful multilabel segmentation";
+    }
+
+    return res;
+}
+
 
 /***************************************************************************
  *********************** Docker Helper Functions ***************************
@@ -1105,7 +1163,12 @@ QStringList CemrgCommandLine::GetDockerArguments(QString volume, QString dockere
 
     bool mirtkTest = QString::compare(_dockerimage, "biomedia/mirtk:v1.1.0", Qt::CaseSensitive);
     QStringList argumentList;
-    argumentList << "run" << "--rm"  << "--volume="+volume+":/data";
+    argumentList << "run";
+    if (numThreads > 0){
+        MITK_INFO << ("[...] Setting number of threads to: " + QString::number(numThreads)).toStdString();
+        argumentList << "--cpus=" + QString::number(numThreads);
+    }
+    argumentList  << "--rm" << "--volume=" + volume + ":/data";
     argumentList << _dockerimage;
     if (mirtkTest == 0)
         argumentList << dockerexe;
@@ -1262,6 +1325,40 @@ QString CemrgCommandLine::OpenCarpDocker(QString dir, QString paramfile, QString
         return outAbsolutePath;
 }
 
+    QString CemrgCommandLine::ExecuteCustomDocker(QString dockerName, QString dir, QString cmd, QStringList arguments, QString outname) {
+        SetDockerImage(dockerName);
+        QString executablePath;
+    #if defined(__APPLE__)
+        executablePath = "/usr/local/bin/";
+    #endif
+        QString executableName = executablePath + "docker";
+        QString outAbsolutePath = ""; // empty means error
+
+        QDir home(dir);
+        QStringList docker_arguments;
+        if (dockerName.contains("opencarp")) {
+            docker_arguments << "run" << "--rm" << ("--volume="+home.absolutePath()+":/shared:z") << "--workdir=/shared";
+            docker_arguments << "docker.opencarp.org/opencarp/opencarp:latest";
+        } else{
+            docker_arguments = GetDockerArguments(home.absolutePath());
+        }
+
+        docker_arguments << cmd; 
+        docker_arguments << arguments;
+
+        QString outPath = home.absolutePath() + "/" + outname;
+
+        bool successful = ExecuteCommand(executableName, docker_arguments, outPath);
+        if (successful) {
+            outAbsolutePath = outPath;
+        } else {
+            MITK_WARN << "Error with custom Docker container.";
+        }
+
+        return outAbsolutePath;
+
+    }
+
 /***************************************************************************
  **************************** Helper Functions *****************************
  ***************************************************************************/
@@ -1357,7 +1454,7 @@ std::string CemrgCommandLine::PrintFullCommand(QString command, QStringList argu
         QString prodPath = QString::fromStdString(mitk::IOUtil::GetProgramPath());
         MITK_INFO << ("Program path: " + prodPath).toStdString();
         std::ofstream prodFile1;
-        prodFile1.open((prodPath + "dockerDebug.txt").toStdString(), std::ofstream::out | std::ofstream::app);
+        prodFile1.open((prodPath + "/dockerDebug.txt").toStdString(), std::ofstream::out | std::ofstream::app);
         prodFile1 << (command + " " + argumentList).toStdString() << "\n";
         prodFile1.close();
     }//_if
@@ -1389,6 +1486,16 @@ bool CemrgCommandLine::ExecuteCommand(QString executableName, QStringList argume
         successful = IsOutputSuccessful(outputPath);
 
     return successful;
+}
+
+QString CemrgCommandLine::GetDockerExecutableName() {
+    QString executablePath;
+#if defined(__APPLE__)
+    executablePath = "/usr/local/bin/";
+#endif
+    QString executableName = executablePath + "docker";
+
+    return executableName;
 }
 
 /***************************************************************************

@@ -36,6 +36,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include <mitkDataStorage.h>
 #include <QString>
 #include <QJsonObject>
+#include <QJsonArray>
 
 class MITKCEMRGAPPMODULE_EXPORT CemrgCommonUtils {
 
@@ -52,13 +53,16 @@ public:
 
     //Sampling Utils
     static mitk::Image::Pointer Downsample(mitk::Image::Pointer image, int factor);
-    static mitk::Image::Pointer IsoImageResampleReorient(mitk::Image::Pointer image, bool resample=false, bool reorientToRAI=false, bool isBinary=false);
-    static mitk::Image::Pointer IsoImageResampleReorient(QString imPath, bool resample=false, bool reorientToRAI=false, bool isBinary=false);
+    static mitk::Image::Pointer IsoImageResampleReorient(mitk::Image::Pointer image, bool resample = false, bool reorientToRAI = false, bool isBinary = false, std::vector<double> spacing = std::vector<double>(3, 1.0));
+    static mitk::Image::Pointer IsoImageResampleReorient(QString imPath, bool resample = false, bool reorientToRAI = false, bool isBinary = false, std::vector<double> spacing = std::vector<double>(3, 1.0));
 
     // Image Analysis Utils
     static void SetSegmentationEdgesToZero(mitk::Image::Pointer image, QString outPath="");
     static void Binarise(mitk::Image::Pointer image, float background=0);
     static mitk::Image::Pointer ReturnBinarised(mitk::Image::Pointer image, float background=0);
+    static QString ConvertToInr(mitk::Image::Pointer image, bool convert2uint, QString dir, QString output_name);
+    static QString ConvertToInr(QString dir, QString filename, bool convert2uint, QString output_name = "");
+    static mitk::Image::Pointer SwapAxes(mitk::Image::Pointer image, const std::vector<int> &orderDimensions = {0, 1, 2});
 
     //Nifti Conversion Utils
     static bool ConvertToNifti(mitk::BaseData::Pointer oneNode, QString path2file, bool resample=false, bool reorient=false);
@@ -90,10 +94,14 @@ public:
 
     //Generic
     static mitk::DataNode::Pointer AddToStorage(mitk::BaseData* data, std::string nodeName, mitk::DataStorage::Pointer ds, bool init = true);
+    static mitk::DataNode::Pointer UpdateFromStorage(mitk::BaseData *data, std::string nodeName, mitk::DataStorage::Pointer ds);
     static QJsonObject CreateJSONObject(QStringList keys_list, QStringList values_list, QStringList types_list);
+    static QJsonArray CreateJSONArrayDouble(std::vector<double> values);
+    static QJsonArray CreateJSONArrayUInt(std::vector<unsigned int> values);
     static QJsonObject ReadJSONFile(QString dir, QString fname);
     static bool WriteJSONFile(QJsonObject json, QString dir, QString fname);
     static bool ModifyJSONFile(QString dir, QString fname, QString key, QString value = "", QString type = "");
+    static void PrintJSON(QJsonObject json, QString title = "");
 
     //Carp Utils
     static void OriginalCoordinates(QString imagePath, QString pointPath, QString outputPath, double scaling = 1000);

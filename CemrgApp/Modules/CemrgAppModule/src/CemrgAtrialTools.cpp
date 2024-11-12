@@ -872,9 +872,7 @@ void CemrgAtrialTools::FixSingleLabelConnectivityInSurface(mitk::Surface::Pointe
 vtkSmartPointer<vtkConnectivityFilter> CemrgAtrialTools::GetLabelConnectivity(mitk::Surface::Pointer externalSurface, double label, bool colourRegions){
     // threshold at label
     vtkSmartPointer<vtkThreshold> thres = vtkSmartPointer<vtkThreshold>::New();
-    thres->SetThresholdFunction(vtkThreshold::THRESHOLD_BETWEEN);
-    thres->SetLowerThreshold(label);
-    thres->SetUpperThreshold(label);
+    thres->ThresholdBetween(label, label);
     thres->SetInputArrayToProcess(0, 0, 0, vtkDataObject::FIELD_ASSOCIATION_CELLS, vtkDataSetAttributes::SCALARS);
     thres->SetInputData(externalSurface->GetVtkPolyData());
     thres->Update();
