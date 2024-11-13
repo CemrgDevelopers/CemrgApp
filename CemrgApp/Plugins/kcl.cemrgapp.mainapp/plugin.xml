@@ -51,6 +51,13 @@
   </extension>
 
   <extension point="org.blueberry.ui.perspectives">
+    <perspective id="kcl.cemrgapp.CemrgFourChamberPerspective"
+        name="Cemrg Four Chamber Heart Tools"
+        class="QmitkCemrgFourChamberPerspective"
+        icon="resources/icon_research.xpm" />
+  </extension>
+  
+  <extension point="org.blueberry.ui.perspectives">
     <perspective id="kcl.cemrgapp.CemrgEasiPerspective"
       name="Cemrg Electrophysiology Simulations"
       class="QmitkCemrgEasiPerspective"

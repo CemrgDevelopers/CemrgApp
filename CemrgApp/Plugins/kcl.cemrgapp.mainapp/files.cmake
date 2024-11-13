@@ -9,6 +9,7 @@ set(INTERNAL_CPP_FILES
   perspectives/QmitkCemrgJBPerspective.cpp
   perspectives/QmitkCemrgHCPerspective.cpp
   perspectives/QmitkCemrgAtrialFibresPerspective.cpp
+  perspectives/QmitkCemrgFourChamberPerspective.cpp
   perspectives/QmitkCemrgRRPerspective.cpp
   perspectives/QmitkCemrgEasiPerspective.cpp
   perspectives/QmitkCemrgPowertransPerspective.cpp
@@ -29,6 +30,7 @@ set(MOC_H_FILES
   src/internal/perspectives/QmitkCemrgJBPerspective.h
   src/internal/perspectives/QmitkCemrgHCPerspective.h
   src/internal/perspectives/QmitkCemrgAtrialFibresPerspective.h
+  src/internal/perspectives/QmitkCemrgFourChamberPerspective.h
   src/internal/perspectives/QmitkCemrgRRPerspective.h
   src/internal/perspectives/QmitkCemrgEasiPerspective.h
   src/internal/perspectives/QmitkCemrgPowertransPerspective.h

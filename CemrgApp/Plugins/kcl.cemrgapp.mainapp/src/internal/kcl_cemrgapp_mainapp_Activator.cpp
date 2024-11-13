@@ -30,6 +30,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include "perspectives/QmitkCemrgJBPerspective.h"
 #include "perspectives/QmitkCemrgHCPerspective.h"
 #include "perspectives/QmitkCemrgAtrialFibresPerspective.h"
+#include "perspectives/QmitkCemrgFourChamberPerspective.h"
 #include "perspectives/QmitkCemrgRRPerspective.h"
 #include "perspectives/QmitkCemrgEasiPerspective.h"
 #include "perspectives/QmitkCemrgPowertransPerspective.h"
@@ -67,6 +68,7 @@ namespace mitk {
         BERRY_REGISTER_EXTENSION_CLASS(QmitkCemrgJBPerspective, context);
         BERRY_REGISTER_EXTENSION_CLASS(QmitkCemrgHCPerspective, context);
         BERRY_REGISTER_EXTENSION_CLASS(QmitkCemrgAtrialFibresPerspective, context);
+        BERRY_REGISTER_EXTENSION_CLASS(QmitkCemrgFourChamberPerspective, context);
         BERRY_REGISTER_EXTENSION_CLASS(QmitkCemrgRRPerspective, context);
         BERRY_REGISTER_EXTENSION_CLASS(QmitkCemrgEasiPerspective, context);
         BERRY_REGISTER_EXTENSION_CLASS(QmitkCemrgPowertransPerspective, context);

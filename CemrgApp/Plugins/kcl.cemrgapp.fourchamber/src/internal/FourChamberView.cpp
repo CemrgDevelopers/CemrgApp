@@ -68,7 +68,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vtkWindowedSincPolyDataFilter.h>
 #include <vtkImplicitPolyDataDistance.h>
 #include <vtkBooleanOperationPolyDataFilter.h>
-#include <vtkTimerLog.h>
 #include <vtkClipPolyData.h>
 #include <vtkDecimatePro.h>
 #include <vtkTransform.h>
