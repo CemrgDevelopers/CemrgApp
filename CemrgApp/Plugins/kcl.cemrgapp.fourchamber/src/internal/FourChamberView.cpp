@@ -641,7 +641,7 @@ void FourChamberView::Meshing(){
         QString basename = "seg_final_smooth";
         QString segname = basename + ".nrrd";
         QString path = seg_dir + "/" + segname;
-        bool ask_to_load = true;
+        
         if (!QFile::exists(path)) {
             // retrieve the path of the segmentation after user has selected it from the UI
             path = QFileDialog::getOpenFileName(NULL, "Open Segmentation file", seg_dir.toStdString().c_str(), QmitkIOUtil::GetFileOpenFilterString());
@@ -1020,9 +1020,9 @@ void FourChamberView::SurfaceToVolume() {
     std::unique_ptr<CemrgFourChamberCmd> fourch_cmd(new CemrgFourChamberCmd());
     fourch_cmd->SetCarpDirectory(carp_directory);
     fourch_cmd->SetCarpless(carpless);
-    for (unsigned int ix = 0; ix < atria.size(); ix++) {
+    for (auto ix = 0; ix < atria.size(); ix++) {
         QString atr = atria.at(ix);
-        for (unsigned int jx = 0; jx < suffix.size(); jx++) {
+        for (auto jx = 0; jx < suffix.size(); jx++) {
             QString srcPath = uacFolder + "/" + atr + "/" + atr + suffix.at(jx);
             QString dstPath = uacFolder + "/" + atr + "/" + atr + fibrsSheet + suffix.at(jx);
             if (!cp(srcPath, dstPath)) return;
@@ -1037,7 +1037,7 @@ void FourChamberView::SurfaceToVolume() {
     if (!MeshtoolConvert(uacFolder, biatrPre + "_fibres_l")) return ;
 
     // === Mapping to four chamber mesh ===
-    for (unsigned int jx = 0; jx < suffix.size(); jx++) {
+    for (auto jx = 0; jx < suffix.size(); jx++) {
         QString srcPath = uacFolder + "/" + biatrPre + suffix.at(jx);
         QString dstPath = uacFolder + "/" + biatrPre + fibrsSheet + suffix.at(jx);
         if (!cp(srcPath, dstPath)) return;
@@ -1077,7 +1077,7 @@ void FourChamberView::VentricularFibres(){
     if (success_vfib_params) {
         QStringList keys, values, types;
         vfibres_parameters.KeysAndValues(keys, values, types);
-        for (unsigned int ix = 0; ix < keys.size(); ix++) {
+        for (auto ix = 0; ix < keys.size(); ix++) {
             std::cout << "[" << keys.at(ix).toStdString() << "] " << values.at(ix).toStdString() << '\n';
         }
 
@@ -1206,7 +1206,7 @@ void FourChamberView::Corrections(){
     
     Inform("Attention", msg.c_str());
 
-    this->GetSite()->GetPage()->ShowView("org.mitk.views.multilabelsegmentation");
+    this->GetSite()->GetPage()->ShowView("org.mitk.views.segmentation");
 }
 
 void FourChamberView::SmoothSegmentation() {
@@ -1273,11 +1273,33 @@ void FourChamberView::CorrectionGetLabels() {
             // find which labels need splitting
             std::unique_ptr<CemrgMultilabelSegmentationUtils> multilabelUtils = std::unique_ptr<CemrgMultilabelSegmentationUtils>(new CemrgMultilabelSegmentationUtils());
             multilabelUtils->GetLabels(seg, labelsInSegmentation);
+
+            if (labelsInSegmentation.size() == 0) {
+                Warn("Attention", "No labels found in the segmentation");
+                return;
+            }
+
+            int maxLabel = *std::max_element(labelsInSegmentation.begin(), labelsInSegmentation.end());
+            bool guessCnnLabels = labelsInSegmentation.size() == 10 && maxLabel == 10;
+            std::cout << "\tGuessing CNN labels: " << guessCnnLabels << '\n';
+            std::cout << "\tLabels in segmentation: " << labelsInSegmentation.size() << '\n';
+            std::cout << "\tMax label: " << maxLabel << '\n';
+
+            QStringList guessCnnLabelsList = {"BACKGROUND", "LV_BP", "LV_myo", "RV_BP", "LA_BP", "RA_BP", "Ao_BP", "PArt_BP", "", "", "LAA"};
+           
             foreach (int label, labelsInSegmentation) {
                 QString cbox_label = QString::number(label);
-                m_Controls.combo_corrections_id->addItem(QString::number(label));
+                if (guessCnnLabels) {
+                    QString guessedLabel = guessCnnLabelsList.at(label);
+                    if (!guessedLabel.isEmpty()) {
+                        cbox_label += ":" + guessedLabel;
+                        segmentationLabels.SetLabelFromString(guessedLabel.toStdString(), label);
+                        userLabels.SetLabelFromString(guessedLabel.toStdString(), label);
+                    }
+                }
+                m_Controls.combo_corrections_id->addItem(cbox_label);
             }
-           
+
             bool segmentation_labels_loaded = CheckForExistingFile(Path(SDIR.SEG), FourChamberView::LABELS_FILE);
             if (segmentation_labels_loaded) {
                 int replySegLabels = Ask("Segmentation labels found", "Do you want to load the segmentation labels?");
@@ -1437,7 +1459,7 @@ void FourChamberView::CorrectionIdLabels(int index) {
                     m_Controls.button_confirm_labels->setEnabled(true);
                 }
 
-                if (splitCurrentLabel) {
+                if (splitCurrentLabel) { // Label needs to be split
                     if (labelsToSplit.size() == 0) {
                         Inform("Attention", "Keep selecting labels to split until you are done.\nThen use Confirm button");
                     }
@@ -1445,14 +1467,14 @@ void FourChamberView::CorrectionIdLabels(int index) {
                     labelsToSplit.push_back(label);
                     m_Controls.combo_corrections_id->removeItem(index);
 
-                } else if (deleteCurrentLabel) {
+                } else if (deleteCurrentLabel) { // Label needs to be deleted
                     m_Controls.combo_corrections_id->removeItem(index);
                     multilabelUtils->RemoveLabel((mitk::Image::Pointer) mlseg, label);
                     mitk::IOUtil::Save(mlseg, StdStringPath(SDIR.SEG + "/seg_corrected.nrrd"));
 
                     CemrgCommonUtils::UpdateFromStorage(mlseg, nodes[0]->GetName(), this->GetDataStorage());
 
-                } else {
+                } else { // Label can be ID'd appropriately
                     QString itemText = QString::number(label);
                     itemText += (pickedLabelName.isEmpty()) ? "" : ": " + pickedLabelName;
                     m_Controls.combo_corrections_id->setItemText(index, itemText);
@@ -2397,6 +2419,7 @@ bool FourChamberView::UserSelectMeshtools3DParameters(QString pre_input_path){
     return userAccepted;
 }
 bool FourChamberView::UserSelectIdentifyLabels(int index, unsigned int label, QColor qc) {
+    MITK_INFO << "UserSelectIdentifyLabels" + std::to_string(index) + " " + std::to_string(label) + " " + std::to_string(qc.rgb());
     QDialog *inputs = new QDialog(0, 0);
     bool userInputAccepted = false;
     m_IdLabels.setupUi(inputs);
