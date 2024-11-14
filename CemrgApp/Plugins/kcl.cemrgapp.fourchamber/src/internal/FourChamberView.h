@@ -174,8 +174,10 @@ protected slots:
 
     void SelectPoints();
     void SelectPointsCylinders();
-    void SelectPointsSlicers();
-    void SelectPointsValvePlains();
+    void CreateSegmentationMyocardium();
+    void CreateSegmentationValvePlanes();
+    // void SelectPointsSlicers();
+    // void SelectPointsValvePlains();
     void SelectPointsCheck();
     void SelectPointsReset();
 

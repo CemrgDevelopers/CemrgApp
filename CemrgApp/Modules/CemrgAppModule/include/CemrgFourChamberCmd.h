@@ -57,6 +57,8 @@ class MITKCEMRGAPPMODULE_EXPORT CemrgFourChamberCmd : public CemrgCommandLine {
         static bool CheckCarpDirectory(QString dir);
         inline bool CheckCarpDirectory() { return CheckCarpDirectory(_carp_dir); };
         inline void SetCarpless(bool value) { carpless = value; };
+        inline void SetTesting(bool value) { testing = value; };
+        inline void SetTestingOn() { SetTesting(true); };
 
         bool ExecuteCarpless(QString executableName, QStringList arguments, QString outputPath, bool isOutputFile = true);
 
@@ -77,6 +79,8 @@ class MITKCEMRGAPPMODULE_EXPORT CemrgFourChamberCmd : public CemrgCommandLine {
         inline QString CARP_DIR(QString subpath) { return _carp_dir + "/" + subpath; };
 
         // Docker calling cemrg/seg-4ch
+        inline void SetDockerImageFourch(QString tag = "latest") { SetDockerImage("cemrg/4ch:" + tag); };
+
         inline void SetBaseDirectory(QString directory) { _base_directory = directory; };
         inline void SetPointsFile(QString filename) { _points_file = "/data/" + filename; };                // only name, not path
         inline void SetOriginSpacingFile(QString filename) { _origin_spacing_file = "/data/" + filename; }; // only name, not path
@@ -95,9 +99,16 @@ class MITKCEMRGAPPMODULE_EXPORT CemrgFourChamberCmd : public CemrgCommandLine {
         inline QString DockerCreateValvePlanes() { return ExecuteSeg4ch("valve_planes", GetArgumentList(), "seg_s4k.nrrd"); };
         inline QString DockerCleanSegmentation() { return ExecuteSeg4ch("clean_seg", GetArgumentList(), "seg_s5.nrrd"); };
 
+        // Docker refactored code 
+
         // Docker calling cemrg/4ch
-        inline void SetDockerImageFourch(QString tag = "latest") { SetDockerImage("cemrg/4ch:" + tag); };
-        inline void SetDockerImageSeg4ch(QString tag = "latest") { SetDockerImage("cemrg/seg-4ch:" + tag); };
+        inline void SetDockerImageSeg4ch(QString tag = "latest") { 
+            if (testing) 
+                SetDockerImage("cemrg-seg-4ch-refact:latest");
+            else
+                SetDockerImage("cemrg/seg-4ch:" + tag); 
+        };
+
         QString DockerExtractSurfaces(QString baseDirectory, QString parFolder, QString inputTagsFilename, QString apexSeptumFolder, QString meshname);
         QString DockerCorrectFibres(QString baseDirectory, QString meshname);
         QString DockerLaplacePrep(QString baseDirectory, QString atrium, QString afibSubdir, QString surfEndo, QString surfEpi);
@@ -129,5 +140,7 @@ class MITKCEMRGAPPMODULE_EXPORT CemrgFourChamberCmd : public CemrgCommandLine {
         QString _origin_spacing_file = "/data/origin_spacing.json";
         QString _labels_file = "";
         QString _base_directory = "";
+
+        bool testing = false;
 };
 #endif // CemrgFourChamberCmd_h
