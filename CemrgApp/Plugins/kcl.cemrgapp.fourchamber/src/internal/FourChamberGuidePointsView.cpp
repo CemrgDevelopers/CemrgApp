@@ -37,8 +37,10 @@ PURPOSE.  See the above copyright notices for more information.
 #include <mitkProgressBar.h>
 #include <mitkNodePredicateProperty.h>
 #include <mitkManualSegmentationToSurfaceFilter.h>
+
+#include "FourChamberCommon.h"
+#include "FourChamberView.h"
 #include "FourChamberGuidePointsView.h"
-#include "AtrialFibresView.h"
 
 // VTK
 #include <vtkGlyph3D.h>
@@ -94,6 +96,14 @@ QString FourChamberGuidePointsView::whichAtrium;
 
 const std::string FourChamberGuidePointsView::VIEW_ID = "org.mitk.views.fourchamberguidepointsview";
 
+enum GuidePointLabel {
+    LA_APEX = 11,
+    LA_SEPTUM = 13,
+    RA_APEX = 15,
+    RA_SEPTUM = 17,
+    RAA_APEX = 19
+}
+
 void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
 
     // create GUI widgets from the Qt Designer's .ui file
@@ -123,19 +133,20 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
             vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
     m_Controls.widget_1->SetRenderWindow(renderWindow);
-    m_Controls.widget_1->GetRenderWindow()->AddRenderer(renderer);
+    m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
     //Setup keyboard interactor
     callBack = vtkSmartPointer<vtkCallbackCommand>::New();
     callBack->SetCallback(KeyCallBackFunc);
     callBack->SetClientData(this);
-    interactor = m_Controls.widget_1->GetRenderWindow()->GetInteractor();
+    interactor = m_Controls.widget_1->renderWindow()->GetInteractor();
     interactor->SetInteractorStyle(vtkSmartPointer<vtkInteractorStyleTrackballCamera>::New());
     interactor->GetInteractorStyle()->KeyPressActivationOff();
     interactor->GetInteractorStyle()->AddObserver(vtkCommand::KeyPressEvent, callBack);
 
     //Initialisation
     m_Controls.radio_load_la->setChecked(true);
+    SetSubdirs();
     iniPreSurf();
     if (surface.IsNotNull()) {
         InitialisePickerObjects();
@@ -174,15 +185,17 @@ void FourChamberGuidePointsView::Help(bool firstTime){
 
 void FourChamberGuidePointsView::SetDirectoryFile(const QString directory) {
     FourChamberGuidePointsView::directory = directory;
-    parfiles = directory + "/parfiles";
-    apex_septum_files = parfiles + "/apex_septum_templates";
-    surfaces_uvc_la = directory + "/surfaces_uvc_LA";
-    surfaces_uvc_ra = directory + "/surfaces_uvc_RA";
-
-    path_to_la = surfaces_uvc_la + "/la/la.vtk";
-    path_to_ra = surfaces_uvc_ra + "/ra/ra.vtk";
 }
 
+void FourChamberGuidePointsView::SetSubdirs(){
+    QString dir = FourChamberGuidePointsView::directory;
+    parfiles = dir + "/parfiles";
+    apex_septum_files = parfiles + "/apex_septum_templates";
+    surfaces_uvc_la = dir + "/surfaces_uvc_LA";
+    surfaces_uvc_ra = dir + "/surfaces_uvc_RA";
+
+    path_to_la = surfaces_uvc_la + "/la/la.vtk";
+    path_to_ra = surfaces_uvc_ra + "/ra/ra.vtk";}
 void FourChamberGuidePointsView::iniPreSurf() {
     //Find the selected node
     QString path = m_Controls.radio_load_la->isChecked() ? path_to_la : path_to_ra;
@@ -251,7 +264,7 @@ void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyD
     renderer->AddActor(glyphActor);
 }
 
-void FourChamberGuidePointsView::PickCallBack(bool refinedLandmarks) {
+void FourChamberGuidePointsView::PickCallBack() {
 
     vtkSmartPointer<vtkCellPicker> picker = vtkSmartPointer<vtkCellPicker>::New();
     picker->SetTolerance(1E-4 * surface->GetVtkPolyData()->GetLength());
@@ -275,10 +288,11 @@ void FourChamberGuidePointsView::PickCallBack(bool refinedLandmarks) {
     if (pickedSeedId == -1){
         pickedSeedId = pickedCellPointIds->GetId(0);
     }
+    
+    // pushedLabel gets updated in UserSelectPvLabel function
+    pickedPointsHandler->AddPointFromSurface(surface, pickedSeedId, pushedLabel);
 
-    pickedPointsHandler->AddPointFromSurface(surface, pickedSeedId);
-
-    m_Controls.widget_1->GetRenderWindow()->Render();
+    m_Controls.widget_1->renderWindow()->Render();
 }
 
 void FourChamberGuidePointsView::KeyCallBackFunc(vtkObject*, long unsigned int, void* ClientData, void*) {
@@ -289,29 +303,28 @@ void FourChamberGuidePointsView::KeyCallBackFunc(vtkObject*, long unsigned int, 
 
     if (key == "space") {
         //Ask the labels
-        self->PickCallBack();
         self->UserSelectPvLabel();
+        self->PickCallBack();
 
     } else if (key == "Delete") {
 
         int lastLabel = self->pickedPointsHandler->CleanupLastPoint();
 
         if (lastLabel != -1) {
-            int radioButtonNumber = lastLabel - 10;
-            if (radioButtonNumber == 1)
-            self->m_Selector.radioBtn_LA_APEX->setEnabled(true);
-            else if (radioButtonNumber == 3)
-            self->m_Selector.radioBtn_LA_SEPTUM->setEnabled(true);
-            else if (radioButtonNumber == 5)
-            self->m_Selector.radioBtn_RA_APEX->setEnabled(true);
-            else if (radioButtonNumber == 7)
-            self->m_Selector.radioBtn_RA_SEPTUM->setEnabled(true);
-            else if (radioButtonNumber == 9)
-            self->m_Selector.radioBtn_RAA_APEX->setEnabled(true);
+            if (lastLabel == GuidePointLabel::LA_APEX)
+                self->m_Selector.radioBtn_LA_APEX->setEnabled(true);
+            else if (lastLabel == GuidePointLabel::LA_SEPTUM)
+                self->m_Selector.radioBtn_LA_SEPTUM->setEnabled(true);
+            else if (lastLabel == GuidePointLabel::RA_APEX)
+                self->m_Selector.radioBtn_RA_APEX->setEnabled(true);
+            else if (lastLabel == GuidePointLabel::RA_SEPTUM)
+                self->m_Selector.radioBtn_RA_SEPTUM->setEnabled(true);
+            else if (lastLabel == GuidePointLabel::RAA_APEX)
+                self->m_Selector.radioBtn_RAA_APEX->setEnabled(true);
             
         }//_if
 
-        self->m_Controls.widget_1->GetRenderWindow()->Render();
+        self->m_Controls.widget_1->renderWindow()->Render();
     } else if (key == "H" || key == "h"){
         self->Help();
     }
@@ -324,19 +337,8 @@ void FourChamberGuidePointsView::InitialisePickerObjects(){
     names << "la.lvapex.vtx" << "la.rvsept_pt.vtx" << "ra.lvapex.vtx" << "ra.rvsept_pt.vtx" << "raa_apex.txt";
     std::vector<int> labels = {11, 13, 15, 17, 19};
 
+    pickedPointsHandler->SetAvailableLabels(names, labels);
 
-    roughSeedIds = vtkSmartPointer<vtkIdList>::New();
-    roughSeedIds->Initialize();
-    roughLineSeeds = vtkSmartPointer<vtkPolyData>::New();
-    roughLineSeeds->Initialize();
-    roughLineSeeds->SetPoints(vtkSmartPointer<vtkPoints>::New());
-
-
-    refinedSeedIds = vtkSmartPointer<vtkIdList>::New();
-    refinedSeedIds->Initialize();
-    refinedLineSeeds = vtkSmartPointer<vtkPolyData>::New();
-    refinedLineSeeds->Initialize();
-    refinedLineSeeds->SetPoints(vtkSmartPointer<vtkPoints>::New());
 }
 
 std::string FourChamberGuidePointsView::GetShortcuts(){
@@ -359,19 +361,19 @@ void FourChamberGuidePointsView::UserSelectPvLabel(){
     if (dialogCode == QDialog::Accepted) {
 
         if (m_Selector.radioBtn_LA_APEX->isChecked()) {
-            pickedPointsHandler->PushBackLabel(11); // LA_APEX
+            pushedLabel = GuidePointLabel::LA_APEX; // LA_APEX
             m_Selector.radioBtn_LA_APEX->setEnabled(false);
         } else if (m_Selector.radioBtn_LA_SEPTUM->isChecked()) {
-            pickedPointsHandler->PushBackLabel(13); // LA_SEPTUM
+            pushedLabel = GuidePointLabel::LA_SEPTUM; // LA_SEPTUM
             m_Selector.radioBtn_LA_SEPTUM->setEnabled(false);
         } else if (m_Selector.radioBtn_RA_APEX->isChecked()) {
-            pickedPointsHandler->PushBackLabel(15); // RA_APEX
+            pushedLabel = GuidePointLabel::RA_APEX; // RA_APEX
             m_Selector.radioBtn_RA_APEX->setEnabled(false);
         } else if (m_Selector.radioBtn_RA_SEPTUM->isChecked()) {
-            pickedPointsHandler->PushBackLabel(17); // RA_SEPTUM
+            pushedLabel = GuidePointLabel::RA_SEPTUM; // RA_SEPTUM
             m_Selector.radioBtn_RA_SEPTUM->setEnabled(false);
         } else if (m_Selector.radioBtn_RAA_APEX->isChecked()) {
-            pickedPointsHandler->PushBackLabel(19); // RAA_APEX
+            pushedLabel = GuidePointLabel::RAA_APEX; // RAA_APEX
             m_Selector.radioBtn_RAA_APEX->setEnabled(false);
         } 
         

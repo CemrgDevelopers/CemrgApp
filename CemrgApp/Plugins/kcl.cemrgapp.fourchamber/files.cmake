@@ -6,6 +6,7 @@ set(INTERNAL_CPP_FILES
   kcl_cemrgapp_fourchamber_Activator.cpp
   FourChamberView.cpp
   FourChamberLandmarksView.cpp
+  FourChamberGuidePointsView.cpp
   CemrgDataInteractor.cpp
 )
 
@@ -18,12 +19,15 @@ set(UI_FILES
   src/internal/Meshtools3DParameterUI.ui
   src/internal/LabelsSelectorUI.ui
   src/internal/VentricularFibresParameter.ui
+  src/internal/FourChamberGuidePointsViewControls.ui
+  src/internal/FourChamberGuidePointsViewSelector.ui
 )
 
 set(MOC_H_FILES
   src/internal/kcl_cemrgapp_fourchamber_Activator.h
   src/internal/FourChamberView.h
   src/internal/FourChamberLandmarksView.h
+  src/internal/FourChamberGuidePointsView.h
   src/internal/CemrgDataInteractor.h
 )
 

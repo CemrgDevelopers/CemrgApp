@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "kcl_cemrgapp_fourchamber_Activator.h"
 #include "FourChamberView.h"
 #include "FourChamberLandmarksView.h"
+#include "FourChamberGuidePointsView.h"
 namespace mitk{
 
 ctkPluginContext* kcl_cemrgapp_fourchamber_Activator::pluginContext = nullptr;
@@ -41,6 +42,7 @@ void kcl_cemrgapp_fourchamber_Activator::start(ctkPluginContext *context){
 
         BERRY_REGISTER_EXTENSION_CLASS(FourChamberView, context)
         BERRY_REGISTER_EXTENSION_CLASS(FourChamberLandmarksView, context)
+        BERRY_REGISTER_EXTENSION_CLASS(FourChamberGuidePointsView, context)
         pluginContext = context;
 }
 

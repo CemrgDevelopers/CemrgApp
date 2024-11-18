@@ -12,7 +12,7 @@ set(CPP_FILES
     CemrgFourChamberTools.cpp
     CemrgFourChamberCmd.cpp
     CemrgMultilabelSegmentationUtils.cpp
-    #    CemrgMeshPointSelector.cpp
+    CemrgMeshPointSelector.cpp
     CemrgAtrialModellingToolCmd.cpp
 )
 
@@ -33,7 +33,7 @@ set(MOC_H_FILES
   include/CemrgAtrialModellingToolCmd.h
   include/CemrgFourChamberTools.h
   include/CemrgFourChamberCmd.h
-  #  include/CemrgMeshPointSelector.h
+  include/CemrgMeshPointSelector.h
   include/FourChamberCommon.h
 )
 

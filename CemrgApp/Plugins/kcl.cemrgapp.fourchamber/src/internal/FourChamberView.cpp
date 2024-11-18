@@ -88,6 +88,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "kcl_cemrgapp_fourchamber_Activator.h"
 #include "FourChamberView.h"
 #include "FourChamberLandmarksView.h"
+#include "FourChamberGuidePointsView.h"
 
 // Qt
 #include <QMessageBox>
@@ -595,8 +596,7 @@ bool FourChamberView::cp(QString src, QString dst) {
 
 
 
-void FourChamberView::PrepareSegmentation()
-{
+void FourChamberView::PrepareSegmentation() {
 
     if (!RequestProjectDirectoryFromUser()) return;
 
@@ -692,17 +692,25 @@ void FourChamberView::Meshing(){
     m_Controls.button_extract_myo->setEnabled(true);
 }
 
+// void FourChamberView::SelectLARALandmarks(){
+//     if (!RequestProjectDirectoryFromUser()) return;
+
+//     QString laSubdir = SDIR.UVC_LA + "/la";
+//     QString raSubdir = SDIR.UVC_RA + "/ra";
+//     QString laName = "la";
+//     QString raName = "ra";
+
+//     this->GetSite()->GetPage()->ResetPerspective();
+//     FourChamberLandmarksView::SetDirectoryFile(directory, SDIR.UVC_LA+"/la", laName + ".vtk", SDIR.UVC_RA+"/ra", raName + ".vtk");
+//     this->GetSite()->GetPage()->ShowView("org.mitk.views.fourchamberlandmarksview");
+// }
+
 void FourChamberView::SelectLARALandmarks(){
     if (!RequestProjectDirectoryFromUser()) return;
 
-    QString laSubdir = SDIR.UVC_LA + "/la";
-    QString raSubdir = SDIR.UVC_RA + "/ra";
-    QString laName = "la";
-    QString raName = "ra";
-
     this->GetSite()->GetPage()->ResetPerspective();
-    FourChamberLandmarksView::SetDirectoryFile(directory, SDIR.UVC_LA+"/la", laName + ".vtk", SDIR.UVC_RA+"/ra", raName + ".vtk");
-    this->GetSite()->GetPage()->ShowView("org.mitk.views.fourchamberlandmarksview");
+    FourChamberGuidePointsView::SetDirectoryFile(directory);
+    this->GetSite()->GetPage()->ShowView("org.mitk.views.fourchamberguidepointsview");
 }
 
 void FourChamberView::ExtractSurfaces(){

@@ -35,8 +35,6 @@ PURPOSE.  See the above copyright notices for more information.
 #include <vtkIdList.h>
 #include <vtkActor.h>
 
-#include <CemrgAtriaClipper.h>
-#include <CemrgScarAdvanced.h>
 #include <CemrgMeshPointSelector.h>
 
 #include "ui_FourChamberGuidePointsViewControls.h"
@@ -58,10 +56,16 @@ class FourChamberGuidePointsView : public QmitkAbstractView {
 public:
 
     static const std::string VIEW_ID;
+
+    static QString fileName;
+    static QString directory;
+    static QString whichAtrium;
+
     static void SetDirectoryFile(const QString directory);
+    
     ~FourChamberGuidePointsView();
 
-   
+    void SetSubdirs();
 
 protected slots:
 
@@ -90,7 +94,7 @@ private:
     void Visualiser(double opacity=1.0);
 
     void SphereSourceVisualiser(vtkSmartPointer<vtkPolyData> pointSources, QString colour="1.0,0.0,0.0", double scaleFactor=0.01);
-    void PickCallBack(bool refinedLandmarks=false);
+    void PickCallBack();
     static void KeyCallBackFunc(vtkObject*, long unsigned int, void* ClientData, void*);
 
     void InitialisePickerObjects();
@@ -105,7 +109,8 @@ private:
     QString path_to_ra;
 
     std::unique_ptr<CemrgMeshPointSelector> pickedPointsHandler;
-    
+    int pushedLabel;
+
     QDialog* inputsSelector;
 
     double alpha;

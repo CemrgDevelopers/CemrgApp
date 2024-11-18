@@ -33,7 +33,6 @@ PURPOSE.  See the above copyright notices for more information.
 #include <mitkITKImageImport.h>
 #include <mitkMorphologicalOperations.h>
 
-#include "CemrgAtrialTools.h"
 
 // VTK
 #include <vtkPointLocator.h>
@@ -83,43 +82,29 @@ PURPOSE.  See the above copyright notices for more information.
 #include <QMessageBox>
 #include <numeric>
 
+#include "CemrgAtrialTools.h"
+#include "CemrgMeshPointSelector.h"
+
 CemrgMeshPointSelector::CemrgMeshPointSelector() {
-    seedIds = vtkSmartPointer<vtkIdList>::New();
-    seedIds->Initialize();
 
     lineSeeds = vtkSmartPointer<vtkPolyData>::New();
     lineSeeds->Initialize();
     lineSeeds->SetPoints(vtkSmartPointer<vtkPoints>::New());
 
-    seedLabels = std::vector<int>();
-    pointNames = QStringList();
+    pointsData = std::vector<PointLabelData>(); // Unified data structure
 }
 
-void CemrgMeshPointSelector::SetAvailableLabels(QStringList names, std::vector<int> labels) {
-    pointNames = names;
-    availableLabels = labels;
-    for (int ix = 0; ix < availableLabels.size(); ix++)     {
-        labelSet.push_back(false);
+bool CemrgMeshPointSelector::IsEmpty() {
+    int lastLabelIndex = GetLastLabelIndex();
+    return (lastLabelIndex == -1);
+}
+
+void CemrgMeshPointSelector::SetAvailableLabels(QStringList& names, std::vector<int>& labels) {
+    pointsData.clear();
+    for (auto ix = 0; ix < names.size(); ix++) { 
+        PointLabelData pd(names.at(ix), labels.at(ix));
+        pointsData.push_back(pd);
     }
-}
-
-void CemrgMeshPointSelector::AddPointFromSurface(mitk::Surface::Pointer surface, int pickedSeedId) {
-    double *point = surface->GetVtkPolyData()->GetPoint(pickedSeedId);
-    AddPoint(point, pickedSeedId);
-}
-
-void CemrgMeshPointSelector::AddPoint(double *point, int pickedSeedId) {
-    seedIds->InsertNextId(pickedSeedId);
-    lineSeeds->GetPoints()->InsertNextPoint(point);
-    lineSeeds->Modified();
-}
-void CemrgMeshPointSelector::PushBackLabel(int label) {
-    seedLabels.push_back(label);
-}
-
-void CemrgMeshPointSelector::PushBackLabelFromAvailable(int index) {
-    seedLabels.push_back(availableLabels.at(index));
-    labelSet.at(index) = true;
 }
 
 bool CemrgMeshPointSelector::AllLabelsSet() {
@@ -128,8 +113,8 @@ bool CemrgMeshPointSelector::AllLabelsSet() {
         return false;
     }
 
-    for (int ix = 0; ix < labelSet.size(); ix++)     {
-        if (!labelSet.at(ix))         {
+    for (const auto& point : pointsData) {
+        if (!point.labelSet) {        
             result = false;
             break;
         }
@@ -137,125 +122,185 @@ bool CemrgMeshPointSelector::AllLabelsSet() {
     return result;
 }
 
+int CemrgMeshPointSelector::AddPickedIdToLabel(int pickedSeedId, int label) {
+    int whichIndex = -1;
+    // look in std::vector<PointLabelData> pointsData
+    for (int ix = 0; ix < static_cast<int>(pointsData.size()); ix++) {
+        if (pointsData[ix].pointLabel == label) {
+            if (!pointsData[ix].labelSet) {
+                pointsData[ix].vtkId = pickedSeedId;
+                pointsData[ix].labelSet = true;
+                whichIndex = ix;
+            } else {
+                MITK_INFO << "Label " << label << " already set!";
+            }
+            break;
+        }
+    }
+    return whichIndex;
+}
+
+void CemrgMeshPointSelector::AddPointFromSurface(mitk::Surface::Pointer surface, int pickedSeedId, int label) {
+    int whichIndex = AddPickedIdToLabel(pickedSeedId, label);
+    if (whichIndex == -1) {
+        MITK_INFO << "Label " << label << " not found or already set!";
+        return;
+    }
+
+    double *point = surface->GetVtkPolyData()->GetPoint(pickedSeedId);
+    pointsData[whichIndex].coordinates = {point[0], point[1], point[2]};
+    lineSeeds->GetPoints()->InsertNextPoint(point);
+    lineSeeds->Modified();
+
+    pointsData[whichIndex].index = GetLastLabelIndex() + 1;
+}
+
 int CemrgMeshPointSelector::CleanupLastPoint() {
-    // Clean up last dropped seed point
+    if (pointsData.empty()) {
+        return -1;
+    }
+
+    // Remove last point from VTK objects
     vtkSmartPointer<vtkPoints> newPoints = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkPoints> points = lineSeeds->GetPoints();
-    for (int i = 0; i < points->GetNumberOfPoints() - 1; i++)     {
+    for (int i = 0; i < points->GetNumberOfPoints() - 1; i++) {
         newPoints->InsertNextPoint(points->GetPoint(i));
     }
     lineSeeds->SetPoints(newPoints);
-    vtkSmartPointer<vtkIdList> newSeedIds = vtkSmartPointer<vtkIdList>::New();
-    newSeedIds->Initialize();
-    vtkSmartPointer<vtkIdList> roughSeedIds = seedIds;
-    for (int i = 0; i < roughSeedIds->GetNumberOfIds() - 1; i++)     {
-        newSeedIds->InsertNextId(roughSeedIds->GetId(i));
-    }
-    seedIds = newSeedIds;
 
-    int res = -1;
+    return UnsetLastPoint();
+}
 
-    if (seedLabels.empty() == false)     {
-        res = seedLabels.back();
-        seedLabels.pop_back();
+int CemrgMeshPointSelector::UnsetLastPoint() {
+    int lastIndex = GetLastLabelIndex();
+    if (lastIndex < 0) {
+        return -1;
     }
 
-    return res;
+    PointLabelData pd = pointsData[lastIndex];
+    pd.labelSet = false;
+    pd.vtkId = -1;
+    pd.coordinates = {0.0, 0.0, 0.0};
+    pd.index = -1;
+    pointsData[lastIndex] = pd;
+
+    return pd.pointLabel;
 }
 
 void CemrgMeshPointSelector::Clear() {
-    seedIds->Reset();
     lineSeeds->Reset();
-    seedLabels.clear();
-    pointNames.clear();
-    availableLabels.clear();
+    pointsData.clear();
 }
 
 std::string CemrgMeshPointSelector::ToString() {
     std::string res = "";
-    for (int i = 0; i < seedLabels.size(); i++)     {
-        res += "Label: " + std::to_string(seedLabels.at(i)) + " Point ID: " + std::to_string(seedIds->GetId(i)) + '\n';
+    for (int ix = 0; ix < static_cast<int>(pointsData.size()); ix++) {
+        res += "Point " + std::to_string(ix) + ":\n";
+        res += "Name: " + pointsData[ix].pointName.toStdString() + '\n';
+        res += "Label: " + std::to_string(pointsData[ix].pointLabel) + '\n';
+        res += "Label set: " + std::to_string(pointsData[ix].labelSet) + '\n';
+        res += "VTK ID: " + std::to_string(pointsData[ix].vtkId) + '\n';
+        res += "Coordinates: (" + std::to_string(pointsData[ix].coordinates[0]) + ", " + std::to_string(pointsData[ix].coordinates[1]) + ", " + std::to_string(pointsData[ix].coordinates[2]) + ")\n";
     }
-
-    for (int j = 0; j < lineSeeds->GetPoints()->GetNumberOfPoints(); j++)     {
-        double *point = lineSeeds->GetPoints()->GetPoint(j);
-        res += "Point: (" + std::to_string(point[0]) + ", " + std::to_string(point[1]) + ", " + std::to_string(point[2]) + ")\n";
-    }
-
-    for (int k = 0; k < seedLabels.size(); k++)     {
-        res += "Label: " + std::to_string(seedLabels.at(k));
-    }
-
     return res;
+}
+
+PointLabelData CemrgMeshPointSelector::GetPointData(QString name) {
+    PointLabelData pd;
+    for (const auto& point : pointsData) {
+        if (point.pointName == name) {
+            pd = point;
+            break;
+        }
+    }
+    return pd;
 }
 
 int CemrgMeshPointSelector::FindLabel(QString name) {
-    int res = -1;
-    for (int i = 0; i < pointNames.size(); i++)     {
-        if (pointNames.at(i) == name)         {
-            res = availableLabels.at(i);
-            break;
+    PointLabelData pd = GetPointData(name);
+    if (pd.pointName == "") {
+        return -1;
+    }
+
+    return pd.pointLabel;
+}
+
+int CemrgMeshPointSelector::FindIndex(QString name) {
+    PointLabelData pd = GetPointData(name);
+    if (pd.pointName == "") {
+        return -1;
+    }
+
+    return pd.vtkId;
+}
+
+std::vector<double> CemrgMeshPointSelector::FindPoint(QString name) {
+    PointLabelData pd = GetPointData(name);
+    if (pd.pointName == "") {
+        return {0.0, 0.0, 0.0};
+    }
+
+    std::vector<double> point = {pd.coordinates[0], pd.coordinates[1], pd.coordinates[2]};
+
+    return point;
+}
+
+std::string CemrgMeshPointSelector::PrintManyVtx(QStringList names) {
+    std::string res = "";
+    std::string aux = "";
+    int count = 0;
+    for (auto ix = 0; ix < names.size(); ix++) {
+        int vtkid = FindIndex(names[ix]);
+        if (vtkid != -1){
+            aux += std::to_string(vtkid) + '\n';
+            count++;
+        }
+    }
+    if (count > 0) {
+        res = std::to_string(count) + "\nextra\n" + aux;
+    }
+    
+    return res;
+}
+
+std::string CemrgMeshPointSelector::PrintManyCoordTxt(QStringList names) {
+    std::string res = "";
+
+    for (auto ix = 0; ix < names.size(); ix++) {
+        int auxIx = FindIndex(names[ix]);
+        if (auxIx != -1) {
+            std::vector<double> point = FindPoint(names[ix]);
+            res += std::to_string(point[0]) + " " + std::to_string(point[1]) + " " + std::to_string(point[2]) + '\n';
         }
     }
     return res;
 }
 
-int CemrgMeshPointSelector::FindIndex(int label) {
-    int res = -1;
-    for (int i = 0; i < availableLabels.size(); i++)     {
-        if (availableLabels.at(i) == label)         {
-            res = i;
-            break;
-        }
-    }
-    return res;
-}
-
-std::vector<double> CemrgMeshPointSelector::FindPoint(int index) {
-    if (index < 0 || index >= lineSeeds->GetPoints()->GetNumberOfPoints())     {
-        return std::vector<double>();
-    }
-
-    double *point = lineSeeds->GetPoints()->GetPoint(index);
-    std::vector<double> res = {point[0], point[1], point[2]};
-
-    return res;
-}
-
-std::string CemrgMeshPointSelector::PrintVtxFile(QString name) {
-    std::string res = "";
-
-    // look for label with name in available labels
-    int thisLabel = FindLabel(name);
-
-    // look for ID with label in seedLabels
-    int thisId = FindIndex(thisLabel);
-
-    res = "1\nextra\n" + std::to_string(thisId) + '\n';
-    return res;
-}
-
-std::string CemrgMeshPointSelector::PrintCoordTxtFile(QString name) {
-    std::string res = "";
-    int thisLabel = FindLabel(name);
-    int thisId = FindIndex(thisLabel);
-    std::vector<double> point = FindPoint(thisId);
-
-    res = std::to_string(point[0]) + " " + std::to_string(point[1]) + " " + std::to_string(point[2]) + '\n';
-    return res;
-}
-
-void CemrgMeshPointSelector::SaveToFile(QString path, Qstring name, QString type = "vtx") {
+void CemrgMeshPointSelector::SaveToFile(QString path, QStringList names, QString type ) {
     std::string toPrint;
     if (type == "vtx")     {
-        toPrint = PrintVtxFile(name);
+        toPrint = PrintManyVtx(names);
     }
     else if (type == "coord")     {
-        toPrint = PrintCoordTxtFile(name);
+        toPrint = PrintManyCoordTxt(names);
     }
 
     std::ofstream file;
     file.open(path.toStdString());
     file << toPrint;
     file.close();
+}
+
+int CemrgMeshPointSelector::GetLastLabelIndex() {
+    // get the las index of pointsData (ix, such that poointsData[ix].index is maximum)
+    int lastLabelIndex = -1;
+    std::vector<int> pointIndices;
+
+    for (const auto& point : pointsData) {
+        if (point.index > lastLabelIndex) {
+            lastLabelIndex = point.index;
+        }
+    }
+
+    return lastLabelIndex;
 }
