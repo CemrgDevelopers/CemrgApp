@@ -130,7 +130,7 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
 
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
             vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-    m_Controls.widget_1->renderWindow(renderWindow);
+    m_Controls.widget_1->SetRenderWindow(renderWindow);
     m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
     //Setup keyboard interactor
@@ -153,6 +153,7 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
 
     m_Controls.button_save->setEnabled(false);
     Help(true);
+    pluginLoaded = true;
 }
 
 void FourChamberGuidePointsView::SetFocus() {
@@ -348,14 +349,18 @@ std::string FourChamberGuidePointsView::GetShortcuts(){
 }
 
 void FourChamberGuidePointsView::LeftAtriumReactToToggle() {
-    if (m_Controls.radio_load_la->isChecked()) {
+    if (pluginLoaded && m_Controls.radio_load_la->isChecked()) {
         QMessageBox::information(NULL, "Info", "Left Atrium selected");
+        iniPreSurf();
+        Visualiser();
     }
 }
 
 void FourChamberGuidePointsView::RightAtriumReactToToggle() {
-    if (m_Controls.radio_load_ra->isChecked()){
+    if (pluginLoaded && m_Controls.radio_load_ra->isChecked()) {
         QMessageBox::information(NULL, "Info", "Right Atrium selected");
+        iniPreSurf();
+        Visualiser();
     }
 }
 

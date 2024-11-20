@@ -122,6 +122,7 @@ private:
     vtkSmartPointer<vtkRenderWindowInteractor> interactor;
     mitk::UnstructuredGrid::Pointer surface;
 
+    bool pluginLoaded = false;
 };
 
 #endif // FourChamberGuidePointsView_h
