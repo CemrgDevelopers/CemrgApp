@@ -360,6 +360,7 @@ void FourChamberGuidePointsView::RightAtriumReactToToggle() {
 }
 
 void FourChamberGuidePointsView::CheckBoxShowAll(int checkedState) {
+    std::cout << "Show all atria: " << checkedState << std::endl;
     QMessageBox::information(NULL, "Info", "Showing both atria");
 }
 
