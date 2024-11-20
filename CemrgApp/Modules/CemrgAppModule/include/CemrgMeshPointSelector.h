@@ -31,6 +31,7 @@ PURPOSE.  See the above copyright notices for more information.
 #define CemrgMeshPointSelector_h
 
 #include <mitkSurface.h>
+#include <mitkUnstructuredGrid.h>
 #include <mitkImage.h>
 #include <vtkSmartPointer.h>
 #include <vtkIdList.h>
@@ -81,6 +82,7 @@ public:
 
     int AddPickedIdToLabel(int pickedSeedId, int label);
     void AddPointFromSurface(mitk::Surface::Pointer surface, int pickedSeedId, int label);
+    void AddPointFromUnstructuredGrid(mitk::UnstructuredGrid::Pointer grid, int pickedSeedId, int label);
 
     int CleanupLastPoint();
     int UnsetLastPoint(); // returns las label

@@ -155,6 +155,21 @@ void CemrgMeshPointSelector::AddPointFromSurface(mitk::Surface::Pointer surface,
     pointsData[whichIndex].index = GetLastLabelIndex() + 1;
 }
 
+void CemrgMeshPointSelector::AddPointFromUnstructuredGrid(mitk::UnstructuredGrid::Pointer grid, int pickedSeedId, int label) {
+    int whichIndex = AddPickedIdToLabel(pickedSeedId, label);
+    if (whichIndex == -1) {
+        MITK_INFO << "Label " << label << " not found or already set!";
+        return;
+    }
+
+    double *point = grid->GetVtkUnstructuredGrid()->GetPoint(pickedSeedId);
+    pointsData[whichIndex].coordinates = {point[0], point[1], point[2]};
+    lineSeeds->GetPoints()->InsertNextPoint(point);
+    lineSeeds->Modified();
+
+    pointsData[whichIndex].index = GetLastLabelIndex() + 1;
+}
+
 int CemrgMeshPointSelector::CleanupLastPoint() {
     if (pointsData.empty()) {
         return -1;

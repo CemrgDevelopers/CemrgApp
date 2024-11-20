@@ -66,6 +66,7 @@ public:
     ~FourChamberGuidePointsView();
 
     void SetSubdirs();
+    std::string GetShortcuts();
 
 protected slots:
 
@@ -101,8 +102,8 @@ private:
 
     void UserSelectPvLabel();
 
-    static QString directory;
     QString parfiles;
+    QString apex_septum_files;
     QString surfaces_uvc_la;
     QString surfaces_uvc_ra;
     QString path_to_la;
@@ -115,10 +116,11 @@ private:
 
     double alpha;
 
+    vtkSmartPointer<vtkActor> surfActor;
     vtkSmartPointer<vtkRenderer> renderer;
     vtkSmartPointer<vtkCallbackCommand> callBack;
     vtkSmartPointer<vtkRenderWindowInteractor> interactor;
-    mitk::Surface::Pointer surface;
+    mitk::UnstructuredGrid::Pointer surface;
 
 };
 

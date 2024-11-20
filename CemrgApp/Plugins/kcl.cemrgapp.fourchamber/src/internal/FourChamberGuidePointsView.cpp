@@ -47,6 +47,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include <vtkSphere.h>
 #include <vtkSphereSource.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkDataSetMapper.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkProperty.h>
@@ -96,14 +97,6 @@ QString FourChamberGuidePointsView::whichAtrium;
 
 const std::string FourChamberGuidePointsView::VIEW_ID = "org.mitk.views.fourchamberguidepointsview";
 
-enum GuidePointLabel {
-    LA_APEX = 11,
-    LA_SEPTUM = 13,
-    RA_APEX = 15,
-    RA_SEPTUM = 17,
-    RAA_APEX = 19
-}
-
 void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
 
     // create GUI widgets from the Qt Designer's .ui file
@@ -114,6 +107,11 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
     connect(m_Controls.check_show_all, SIGNAL(stateChanged(int)), this, SLOT(CheckBoxShowAll(int)));
     connect(m_Controls.button_save, SIGNAL(clicked()), this, SLOT(Save()));
     connect(m_Controls.alpha_slider, SIGNAL(valueChanged(int)), this, SLOT(ChangeAlpha(int)));
+
+    inputsSelector = new QDialog(0, Qt::Window);
+    m_Selector.setupUi(inputsSelector);
+    connect(m_Selector.buttonBox, SIGNAL(accepted()), inputsSelector, SLOT(accept()));
+    connect(m_Selector.buttonBox, SIGNAL(rejected()), inputsSelector, SLOT(reject()));
 
     //Setup renderer
     surfActor = vtkSmartPointer<vtkActor>::New();
@@ -153,7 +151,7 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
         Visualiser();
     }
 
-    m_Controls.button_save2_refined->setEnabled(false);
+    m_Controls.button_save->setEnabled(false);
     Help(true);
 }
 
@@ -166,8 +164,7 @@ void FourChamberGuidePointsView::OnSelectionChanged(
 }
 
 FourChamberGuidePointsView::~FourChamberGuidePointsView() {
-    inputsRough->deleteLater();
-    inputsRefined->deleteLater();
+    inputsSelector->deleteLater();
 }
 
 // slots
@@ -176,7 +173,7 @@ void FourChamberGuidePointsView::Help(bool firstTime){
     if(firstTime){
         msg = "HELP\n";
     } else if(!m_Controls.radio_load_la->isChecked()) {
-        msg = "lEFT ATRIUM POINTS\n";
+        msg = "LEFT ATRIUM POINTS\n";
     } else {
         msg = "RIGHT ATRIUM POINTS\n";
     }
@@ -199,7 +196,7 @@ void FourChamberGuidePointsView::SetSubdirs(){
 void FourChamberGuidePointsView::iniPreSurf() {
     //Find the selected node
     QString path = m_Controls.radio_load_la->isChecked() ? path_to_la : path_to_ra;
-    mitk::Surface::Pointer shell = CemrgCommonUtils::LoadVTKMesh(path.toStdString());
+    mitk::UnstructuredGrid::Pointer shell = mitk::IOUtil::Load<mitk::UnstructuredGrid>(path.toStdString());
     if (shell.IsNull()) {
         MITK_WARN << "Shell is null!";
         return;
@@ -215,8 +212,8 @@ void FourChamberGuidePointsView::Visualiser(double opacity){
     SphereSourceVisualiser(pickedPointsHandler->GetLineSeeds());
 
     //Create a mapper and actor for surface
-    vtkSmartPointer<vtkPolyDataMapper> surfMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    surfMapper->SetInputData(surface->GetVtkPolyData());
+    vtkSmartPointer<vtkDataSetMapper> surfMapper = vtkSmartPointer<vtkDataSetMapper>::New();
+    surfMapper->SetInputData(surface->GetVtkUnstructuredGrid());
     surfMapper->SetScalarRange(min_scalar, max_scalar);
     surfMapper->SetScalarModeToUseCellData();
     surfMapper->ScalarVisibilityOn();
@@ -251,7 +248,7 @@ void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyD
     glyph3D->SetInputData(pointSources);
     glyph3D->SetSourceConnection(glyphSource->GetOutputPort());
     glyph3D->SetScaleModeToDataScalingOff();
-    glyph3D->SetScaleFactor(surface->GetVtkPolyData()->GetLength()*scaleFactor);
+    glyph3D->SetScaleFactor(surface->GetVtkUnstructuredGrid()->GetLength()*scaleFactor);
     glyph3D->Update();
 
     //Create a mapper and actor for glyph
@@ -267,19 +264,19 @@ void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyD
 void FourChamberGuidePointsView::PickCallBack() {
 
     vtkSmartPointer<vtkCellPicker> picker = vtkSmartPointer<vtkCellPicker>::New();
-    picker->SetTolerance(1E-4 * surface->GetVtkPolyData()->GetLength());
+    picker->SetTolerance(1E-4 * surface->GetVtkUnstructuredGrid()->GetLength());
     int* eventPosition = interactor->GetEventPosition();
     int result = picker->Pick(float(eventPosition[0]), float(eventPosition[1]), 0.0, renderer);
     if (result == 0) return;
     double* pickPosition = picker->GetPickPosition();
-    vtkIdList* pickedCellPointIds = surface->GetVtkPolyData()->GetCell(picker->GetCellId())->GetPointIds();
+    vtkIdList* pickedCellPointIds = surface->GetVtkUnstructuredGrid()->GetCell(picker->GetCellId())->GetPointIds();
 
     double distance;
     int pickedSeedId = -1;
     double minDistance = 1E10;
     for (int i=0; i<pickedCellPointIds->GetNumberOfIds(); i++) {
         distance = vtkMath::Distance2BetweenPoints(
-                    pickPosition, surface->GetVtkPolyData()->GetPoint(pickedCellPointIds->GetId(i)));
+                    pickPosition, surface->GetVtkUnstructuredGrid()->GetPoint(pickedCellPointIds->GetId(i)));
         if (distance < minDistance) {
             minDistance = distance;
             pickedSeedId = pickedCellPointIds->GetId(i);
@@ -290,7 +287,7 @@ void FourChamberGuidePointsView::PickCallBack() {
     }
     
     // pushedLabel gets updated in UserSelectPvLabel function
-    pickedPointsHandler->AddPointFromSurface(surface, pickedSeedId, pushedLabel);
+    pickedPointsHandler->AddPointFromUnstructuredGrid(surface, pickedSeedId, pushedLabel);
 
     m_Controls.widget_1->renderWindow()->Render();
 }
@@ -311,15 +308,15 @@ void FourChamberGuidePointsView::KeyCallBackFunc(vtkObject*, long unsigned int, 
         int lastLabel = self->pickedPointsHandler->CleanupLastPoint();
 
         if (lastLabel != -1) {
-            if (lastLabel == GuidePointLabel::LA_APEX)
+            if (lastLabel == AtrialLandmarksType::LA_APEX)
                 self->m_Selector.radioBtn_LA_APEX->setEnabled(true);
-            else if (lastLabel == GuidePointLabel::LA_SEPTUM)
+            else if (lastLabel == AtrialLandmarksType::LA_SEPTUM)
                 self->m_Selector.radioBtn_LA_SEPTUM->setEnabled(true);
-            else if (lastLabel == GuidePointLabel::RA_APEX)
+            else if (lastLabel == AtrialLandmarksType::RA_APEX)
                 self->m_Selector.radioBtn_RA_APEX->setEnabled(true);
-            else if (lastLabel == GuidePointLabel::RA_SEPTUM)
+            else if (lastLabel == AtrialLandmarksType::RA_SEPTUM)
                 self->m_Selector.radioBtn_RA_SEPTUM->setEnabled(true);
-            else if (lastLabel == GuidePointLabel::RAA_APEX)
+            else if (lastLabel == AtrialLandmarksType::RAA_APEX)
                 self->m_Selector.radioBtn_RAA_APEX->setEnabled(true);
             
         }//_if
@@ -350,6 +347,31 @@ std::string FourChamberGuidePointsView::GetShortcuts(){
     return res;
 }
 
+void FourChamberGuidePointsView::LeftAtriumReactToToggle() {
+    if (m_Selector.radio_load_la->isChecked()) {
+        QMessageBox::information(NULL, "Info", "Left Atrium selected");
+    }
+}
+
+void FourChamberGuidePointsView::RightAtriumReactToToggle() {
+    if (m_Selector.radio_load_ra->isChecked()){
+        QMessageBox::information(NULL, "Info", "Right Atrium selected");
+    }
+}
+
+void FourChamberGuidePointsView::CheckBoxShowAll(int checkedState) {
+    QMessageBox::information(NULL, "Info", "Showing both atria");
+}
+
+void FourChamberGuidePointsView::ChangeAlpha(int alpha) {
+    double opacity = alpha / 100.0;
+    Visualiser(opacity);
+}
+
+void FourChamberGuidePointsView::Save() {
+    QMessageBox::information(NULL, "Info", "Saving points to files");
+}
+
 void FourChamberGuidePointsView::UserSelectPvLabel(){
     int dialogCode = inputsSelector->exec();
     QRect screenGeometry = QApplication::desktop()->screenGeometry();
@@ -361,19 +383,19 @@ void FourChamberGuidePointsView::UserSelectPvLabel(){
     if (dialogCode == QDialog::Accepted) {
 
         if (m_Selector.radioBtn_LA_APEX->isChecked()) {
-            pushedLabel = GuidePointLabel::LA_APEX; // LA_APEX
+            pushedLabel = AtrialLandmarksType::LA_APEX; // LA_APEX
             m_Selector.radioBtn_LA_APEX->setEnabled(false);
         } else if (m_Selector.radioBtn_LA_SEPTUM->isChecked()) {
-            pushedLabel = GuidePointLabel::LA_SEPTUM; // LA_SEPTUM
+            pushedLabel = AtrialLandmarksType::LA_SEPTUM; // LA_SEPTUM
             m_Selector.radioBtn_LA_SEPTUM->setEnabled(false);
         } else if (m_Selector.radioBtn_RA_APEX->isChecked()) {
-            pushedLabel = GuidePointLabel::RA_APEX; // RA_APEX
+            pushedLabel = AtrialLandmarksType::RA_APEX; // RA_APEX
             m_Selector.radioBtn_RA_APEX->setEnabled(false);
         } else if (m_Selector.radioBtn_RA_SEPTUM->isChecked()) {
-            pushedLabel = GuidePointLabel::RA_SEPTUM; // RA_SEPTUM
+            pushedLabel = AtrialLandmarksType::RA_SEPTUM; // RA_SEPTUM
             m_Selector.radioBtn_RA_SEPTUM->setEnabled(false);
         } else if (m_Selector.radioBtn_RAA_APEX->isChecked()) {
-            pushedLabel = GuidePointLabel::RAA_APEX; // RAA_APEX
+            pushedLabel = AtrialLandmarksType::RAA_APEX; // RAA_APEX
             m_Selector.radioBtn_RAA_APEX->setEnabled(false);
         } 
         
