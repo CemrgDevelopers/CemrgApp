@@ -333,7 +333,7 @@ void FourChamberView::LoadDICOM() {
     } else {
 
         MITK_INFO << "Using MITK DICOM editor";
-        QString editor_id = "org.mitk.editors.dicomeditor";
+        QString editor_id = "org.mitk.editors.dicombrowser";
         berry::IEditorInput::Pointer input(new berry::FileEditorInput(QString()));
         this->GetSite()->GetPage()->OpenEditor(input, editor_id);
 

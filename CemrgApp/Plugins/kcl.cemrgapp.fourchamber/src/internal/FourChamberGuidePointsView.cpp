@@ -348,13 +348,13 @@ std::string FourChamberGuidePointsView::GetShortcuts(){
 }
 
 void FourChamberGuidePointsView::LeftAtriumReactToToggle() {
-    if (m_Selector.radio_load_la->isChecked()) {
+    if (m_Controls.radio_load_la->isChecked()) {
         QMessageBox::information(NULL, "Info", "Left Atrium selected");
     }
 }
 
 void FourChamberGuidePointsView::RightAtriumReactToToggle() {
-    if (m_Selector.radio_load_ra->isChecked()){
+    if (m_Controls.radio_load_ra->isChecked()){
         QMessageBox::information(NULL, "Info", "Right Atrium selected");
     }
 }
