@@ -210,7 +210,7 @@ void FourChamberGuidePointsView::Visualiser(double opacity){
     double max_scalar = 4; // RA
     double min_scalar = 3; // LA
 
-    SphereSourceVisualiser(pickedPointsHandler->GetLineSeeds());
+    SphereSourceVisualiser(pickedPointsHandler->GetLineSeeds(), "0.4,0.1,0.0", 0.1);
 
     //Create a mapper and actor for surface
     vtkSmartPointer<vtkDataSetMapper> surfMapper = vtkSmartPointer<vtkDataSetMapper>::New();
@@ -265,11 +265,13 @@ void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyD
 void FourChamberGuidePointsView::PickCallBack() {
 
     vtkSmartPointer<vtkCellPicker> picker = vtkSmartPointer<vtkCellPicker>::New();
+    std::cout << "Tolerance: " << 1E-4 * surface->GetVtkUnstructuredGrid()->GetLength() << std::endl;
     picker->SetTolerance(1E-4 * surface->GetVtkUnstructuredGrid()->GetLength());
     int* eventPosition = interactor->GetEventPosition();
     int result = picker->Pick(float(eventPosition[0]), float(eventPosition[1]), 0.0, renderer);
     if (result == 0) return;
     double* pickPosition = picker->GetPickPosition();
+    std::cout << "Pick position: " << pickPosition[0] << " " << pickPosition[1] << " " << pickPosition[2] << std::endl;
     vtkIdList* pickedCellPointIds = surface->GetVtkUnstructuredGrid()->GetCell(picker->GetCellId())->GetPointIds();
 
     double distance;
@@ -278,17 +280,21 @@ void FourChamberGuidePointsView::PickCallBack() {
     for (int i=0; i<pickedCellPointIds->GetNumberOfIds(); i++) {
         distance = vtkMath::Distance2BetweenPoints(
                     pickPosition, surface->GetVtkUnstructuredGrid()->GetPoint(pickedCellPointIds->GetId(i)));
+        std::cout << "Point ID: " << pickedCellPointIds->GetId(i) << std::endl;
+        std::cout << "Distance: " << distance << std::endl; 
         if (distance < minDistance) {
             minDistance = distance;
             pickedSeedId = pickedCellPointIds->GetId(i);
         }//_if
     }//_for
     if (pickedSeedId == -1){
+        std::cout << "No point was picked!" << std::endl;
         pickedSeedId = pickedCellPointIds->GetId(0);
     }
     
     // pushedLabel gets updated in UserSelectPvLabel function
     pickedPointsHandler->AddPointFromUnstructuredGrid(surface, pickedSeedId, pushedLabel);
+    MITK_INFO << pickedPointsHandler->ToString();
 
     m_Controls.widget_1->renderWindow()->Render();
 }
@@ -404,6 +410,7 @@ void FourChamberGuidePointsView::UserSelectPvLabel(){
             pushedLabel = AtrialLandmarksType::RAA_APEX; // RAA_APEX
             m_Selector.radioBtn_RAA_APEX->setEnabled(false);
         } 
+        MITK_INFO << "Label selected: " << pushedLabel;
         
     } else if (dialogCode == QDialog::Rejected) {
         inputsSelector->close();
