@@ -66,6 +66,7 @@ public:
     ~FourChamberGuidePointsView();
 
     void SetSubdirs();
+    bool CreateVisualisationMesh(QString dir, QString visName, QString originalName);
     std::string GetShortcuts();
 
 protected slots:
@@ -120,7 +121,7 @@ private:
     vtkSmartPointer<vtkRenderer> renderer;
     vtkSmartPointer<vtkCallbackCommand> callBack;
     vtkSmartPointer<vtkRenderWindowInteractor> interactor;
-    mitk::UnstructuredGrid::Pointer surface;
+    mitk::Surface::Pointer surface;
 
     bool pluginLoaded = false;
 };

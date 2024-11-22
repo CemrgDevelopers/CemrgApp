@@ -89,6 +89,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include <CemrgAtriaClipper.h>
 #include <CemrgCommandLine.h>
 #include <CemrgCommonUtils.h>
+#include <CemrgFourChamberCmd.h>
 #include <FourChamberCommon.h>
 
 QString FourChamberGuidePointsView::fileName;
@@ -144,7 +145,6 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
 
     //Initialisation
     m_Controls.radio_load_la->setChecked(true);
-    SetSubdirs();
     iniPreSurf();
     if (surface.IsNotNull()) {
         InitialisePickerObjects();
@@ -192,12 +192,52 @@ void FourChamberGuidePointsView::SetSubdirs(){
     surfaces_uvc_la = dir + "/surfaces_uvc_LA";
     surfaces_uvc_ra = dir + "/surfaces_uvc_RA";
 
-    path_to_la = surfaces_uvc_la + "/la/la.vtk";
-    path_to_ra = surfaces_uvc_ra + "/ra/ra.vtk";}
+    path_to_la = surfaces_uvc_la + "/la/la_vis.surfmesh.vtk";
+    path_to_ra = surfaces_uvc_ra + "/ra/ra_vis.surfmesh.vtk";
+}
+
+bool FourChamberGuidePointsView::CreateVisualisationMesh(QString dir, QString visName, QString originalName) {
+    bool success = false;
+    QString path = dir + "/" + visName + ".surfmesh.vtk";
+    QFileInfo fi(path);
+    if (!fi.exists()) {
+        QString originalPath = dir + "/" + originalName;
+        if (!QFile::exists(originalPath)) {
+            MITK_WARN << "File" << orginalPath.toStdString() << "does not exist!";
+            return;
+        }
+
+        std::unique_ptr<CemrgFourChamberCmd> fourch = std::make_unique<CemrgFourChamberCmd>();
+        QStringList arguments;
+        arguments << "-msh=" + originalPath;
+        arguments << "-surf=" + visName;
+        arguments << "-ofmt=vtk_polydata";
+        QString path = success = fourch->DockerMeshtoolGeneric(dir, "extract", "surface", arguments, visName);
+
+        success = (QFile::exists(path));
+    } else {
+        success = true;
+    }
+
+    return success;
+}
+
 void FourChamberGuidePointsView::iniPreSurf() {
-    //Find the selected node
+    SetSubdirs();
+    bool laVisSuccess = CreateVisualisationMesh(surfaces_uvc_la, QString("la/la_vis"), QString("la/la.vtk"));
+    bool raVisSuccess = CreateVisualisationMesh(surfaces_uvc_ra, QString("ra/ra_vis"), QString("ra/ra.vtk"));
+
+    m_Controls.radio_load_la->setEnabled(laVisSuccess);
+    m_Controls.radio_load_ra->setEnabled(raVisSuccess);
+
+    if (!laVisSuccess && !raVisSuccess) {
+        MITK_WARN << "No visualisation files found!";
+        return;
+    }
+
+    // Find the selected node
     QString path = m_Controls.radio_load_la->isChecked() ? path_to_la : path_to_ra;
-    mitk::UnstructuredGrid::Pointer shell = mitk::IOUtil::Load<mitk::UnstructuredGrid>(path.toStdString());
+    mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(path.toStdString());
     if (shell.IsNull()) {
         MITK_WARN << "Shell is null!";
         return;
@@ -213,8 +253,8 @@ void FourChamberGuidePointsView::Visualiser(double opacity){
     SphereSourceVisualiser(pickedPointsHandler->GetLineSeeds(), "0.4,0.1,0.0", 0.1);
 
     //Create a mapper and actor for surface
-    vtkSmartPointer<vtkDataSetMapper> surfMapper = vtkSmartPointer<vtkDataSetMapper>::New();
-    surfMapper->SetInputData(surface->GetVtkUnstructuredGrid());
+    vtkSmartPointer<vtkPolyDataMapper> surfMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    surfMapper->SetInputData(surface->GetVtkPolyData());
     surfMapper->SetScalarRange(min_scalar, max_scalar);
     surfMapper->SetScalarModeToUseCellData();
     surfMapper->ScalarVisibilityOn();
@@ -249,7 +289,7 @@ void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyD
     glyph3D->SetInputData(pointSources);
     glyph3D->SetSourceConnection(glyphSource->GetOutputPort());
     glyph3D->SetScaleModeToDataScalingOff();
-    glyph3D->SetScaleFactor(surface->GetVtkUnstructuredGrid()->GetLength()*scaleFactor);
+    glyph3D->SetScaleFactor(surface->GetVtkPolyData()->GetLength()*scaleFactor);
     glyph3D->Update();
 
     //Create a mapper and actor for glyph
@@ -265,21 +305,20 @@ void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyD
 void FourChamberGuidePointsView::PickCallBack() {
 
     vtkSmartPointer<vtkCellPicker> picker = vtkSmartPointer<vtkCellPicker>::New();
-    std::cout << "Tolerance: " << 1E-4 * surface->GetVtkUnstructuredGrid()->GetLength() << std::endl;
-    picker->SetTolerance(1E-4 * surface->GetVtkUnstructuredGrid()->GetLength());
+    picker->SetTolerance(1E-4 * surface->GetVtkPolyData()->GetLength());
     int* eventPosition = interactor->GetEventPosition();
     int result = picker->Pick(float(eventPosition[0]), float(eventPosition[1]), 0.0, renderer);
     if (result == 0) return;
     double* pickPosition = picker->GetPickPosition();
     std::cout << "Pick position: " << pickPosition[0] << " " << pickPosition[1] << " " << pickPosition[2] << std::endl;
-    vtkIdList* pickedCellPointIds = surface->GetVtkUnstructuredGrid()->GetCell(picker->GetCellId())->GetPointIds();
+    vtkIdList* pickedCellPointIds = surface->GetVtkPolyData()->GetCell(picker->GetCellId())->GetPointIds();
 
     double distance;
     int pickedSeedId = -1;
     double minDistance = 1E10;
     for (int i=0; i<pickedCellPointIds->GetNumberOfIds(); i++) {
         distance = vtkMath::Distance2BetweenPoints(
-                    pickPosition, surface->GetVtkUnstructuredGrid()->GetPoint(pickedCellPointIds->GetId(i)));
+                    pickPosition, surface->GetVtkPolyData()->GetPoint(pickedCellPointIds->GetId(i)));
         std::cout << "Point ID: " << pickedCellPointIds->GetId(i) << std::endl;
         std::cout << "Distance: " << distance << std::endl; 
         if (distance < minDistance) {
@@ -287,13 +326,15 @@ void FourChamberGuidePointsView::PickCallBack() {
             pickedSeedId = pickedCellPointIds->GetId(i);
         }//_if
     }//_for
+    std::cout << "Picked seed ID: " << pickedSeedId << std::endl;
+    std::cout << "Picked seed distance: " << minDistance << std::endl;
     if (pickedSeedId == -1){
         std::cout << "No point was picked!" << std::endl;
         pickedSeedId = pickedCellPointIds->GetId(0);
     }
     
     // pushedLabel gets updated in UserSelectPvLabel function
-    pickedPointsHandler->AddPointFromUnstructuredGrid(surface, pickedSeedId, pushedLabel);
+    pickedPointsHandler->AddPointFromSurface(surface, pickedSeedId, pushedLabel);
     MITK_INFO << pickedPointsHandler->ToString();
 
     m_Controls.widget_1->renderWindow()->Render();
@@ -377,7 +418,7 @@ void FourChamberGuidePointsView::CheckBoxShowAll(int checkedState) {
 
 void FourChamberGuidePointsView::ChangeAlpha(int alpha) {
     double opacity = alpha / 100.0;
-    Visualiser(opacity);
+    std::cout << "Opacity: " << opacity << std::endl;
 }
 
 void FourChamberGuidePointsView::Save() {
