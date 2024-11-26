@@ -73,10 +73,11 @@ protected slots:
 
     /// \brief Called when the user clicks the GUI button
     void Help(bool firstTime=false);
-    void LeftAtriumReactToToggle(); //
-    void RightAtriumReactToToggle(); //
-    void CheckBoxShowAll(int checkedState); //
+    // void LoadMeshes(int stateChange); //
+    void LeftAtriumReactToToggle();
+    void RightAtriumReactToToggle();
     void ChangeAlpha(int alpha); //
+    void ConfirmAlpha();
     void Save();
 
 protected:
@@ -102,6 +103,8 @@ private:
     void InitialisePickerObjects();
 
     void UserSelectPvLabel();
+
+    inline QString APEX_SEPTUM(QString file) { return apex_septum_files + "/" + file; };
 
     QString parfiles;
     QString apex_septum_files;

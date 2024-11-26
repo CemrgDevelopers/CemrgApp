@@ -170,6 +170,27 @@ void CemrgMeshPointSelector::AddPointFromUnstructuredGrid(mitk::UnstructuredGrid
     pointsData[whichIndex].index = GetLastLabelIndex() + 1;
 }
 
+void CemrgMeshPointSelector::UpdateVtkIdFromSurface(mitk::Surface::Pointer surface, QStringList names) {
+    for (int ix = 0; ix < static_cast<int>(pointsData.size()); ix++) {
+        if (pointsData[ix].labelSet && names.contains(pointsData[ix].pointName)) {
+            vtkIdType vtkId = surface->GetVtkPolyData()->FindPoint(pointsData[ix].coordinates.data());
+            pointsData[ix].vtkId = vtkId;
+        }
+    }
+}
+
+void CemrgMeshPointSelector::UpdateVtkIdFromUnstructuredGrid(mitk::UnstructuredGrid::Pointer grid, QStringList names) {
+    for (int ix = 0; ix < static_cast<int>(pointsData.size()); ix++) {
+        if (pointsData[ix].labelSet && names.contains(pointsData[ix].pointName)) {
+            double *pt = pointsData[ix].coordinates.data();
+            vtkIdType vtkId = grid->GetVtkUnstructuredGrid()->FindPoint(pointsData[ix].coordinates.data());
+
+            std::cout << "Point: (" << pt[0] << " " << pt[1] << " " << pt[2] << ") Old ID:" << pointsData[ix].vtkId <<", New ID: " << vtkId << std::endl;
+            pointsData[ix].vtkId = vtkId;
+        }
+    }
+}
+
 int CemrgMeshPointSelector::CleanupLastPoint() {
     if (pointsData.empty()) {
         return -1;
@@ -224,7 +245,7 @@ PointLabelData CemrgMeshPointSelector::GetPointData(QString name) {
     PointLabelData pd;
     for (const auto& point : pointsData) {
         if (point.pointName == name) {
-            pd = point;
+             pd = point;
             break;
         }
     }

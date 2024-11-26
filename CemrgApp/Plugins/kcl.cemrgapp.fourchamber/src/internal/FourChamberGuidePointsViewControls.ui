@@ -16,13 +16,6 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QGridLayout" name="gridLayout">
-     <item row="1" column="1">
-      <widget class="QRadioButton" name="radio_load_la">
-       <property name="text">
-        <string>Load Left Atrium</string>
-       </property>
-      </widget>
-     </item>
      <item row="0" column="0">
       <widget class="QLabel" name="label_1">
        <property name="text">
@@ -34,6 +27,13 @@
       <widget class="QPushButton" name="button_guide1">
        <property name="text">
         <string>Help</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QRadioButton" name="radio_load_la">
+       <property name="text">
+        <string>Load Left Atrium</string>
        </property>
       </widget>
      </item>
@@ -59,13 +59,6 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QCheckBox" name="check_show_all">
-       <property name="text">
-        <string>Show Both Atria</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QSlider" name="alpha_slider">
        <property name="minimum">
         <number>1</number>
@@ -85,9 +78,16 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="button_opacity">
+       <property name="text">
+        <string>Confirm Transparency</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="button_save">
        <property name="text">
-        <string>Save</string>
+        <string>Save Points</string>
        </property>
       </widget>
      </item>

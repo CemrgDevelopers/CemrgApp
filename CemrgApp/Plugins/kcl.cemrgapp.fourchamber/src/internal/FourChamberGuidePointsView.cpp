@@ -99,15 +99,16 @@ QString FourChamberGuidePointsView::whichAtrium;
 const std::string FourChamberGuidePointsView::VIEW_ID = "org.mitk.views.fourchamberguidepointsview";
 
 void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
+    MITK_INFO << "FourChamberGuidePointsView";   
 
     // create GUI widgets from the Qt Designer's .ui file
     m_Controls.setupUi(parent);
     connect(m_Controls.button_guide1, SIGNAL(clicked()), this, SLOT(Help()));
     connect(m_Controls.radio_load_la, SIGNAL(toggled(bool)), this, SLOT(LeftAtriumReactToToggle()));
     connect(m_Controls.radio_load_ra, SIGNAL(toggled(bool)), this, SLOT(RightAtriumReactToToggle()));
-    connect(m_Controls.check_show_all, SIGNAL(stateChanged(int)), this, SLOT(CheckBoxShowAll(int)));
     connect(m_Controls.button_save, SIGNAL(clicked()), this, SLOT(Save()));
     connect(m_Controls.alpha_slider, SIGNAL(valueChanged(int)), this, SLOT(ChangeAlpha(int)));
+    connect(m_Controls.button_opacity, SIGNAL(clicked()), this, SLOT(ConfirmAlpha()));
 
     inputsSelector = new QDialog(0, Qt::Window);
     m_Selector.setupUi(inputsSelector);
@@ -131,7 +132,7 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
 
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
             vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-    m_Controls.widget_1->SetRenderWindow(renderWindow);
+    m_Controls.widget_1->setRenderWindow(renderWindow);
     m_Controls.widget_1->renderWindow()->AddRenderer(renderer);
 
     //Setup keyboard interactor
@@ -151,8 +152,8 @@ void FourChamberGuidePointsView::CreateQtPartControl(QWidget *parent) {
         Visualiser();
     }
 
-    m_Controls.button_save->setEnabled(false);
     Help(true);
+    alpha = 1.0;
     pluginLoaded = true;
 }
 
@@ -173,10 +174,14 @@ void FourChamberGuidePointsView::Help(bool firstTime){
     std::string msg = "";
     if(firstTime){
         msg = "HELP\n";
-    } else if(!m_Controls.radio_load_la->isChecked()) {
-        msg = "LEFT ATRIUM POINTS\n";
+        msg += "1. Check the boxes to load the left or right atrium.\n";
+        msg += "2. Use the slider to adjust the opacity of the loaded atrium.\n";
+        msg += "3. Hover on top of the surface and press SPACE to select points.\n";
     } else {
-        msg = "RIGHT ATRIUM POINTS\n";
+        msg = "HELP\n";
+        msg += "1. Check the boxes to load the left or right atrium.\n";
+        msg += "2. Use the slider to adjust the opacity of the loaded atrium.\n";
+        msg += "3. Hover on top of the surface and press SPACE to select points.\n";
     }
     QMessageBox::information(NULL, "Help", msg.c_str());
 }
@@ -197,25 +202,28 @@ void FourChamberGuidePointsView::SetSubdirs(){
 }
 
 bool FourChamberGuidePointsView::CreateVisualisationMesh(QString dir, QString visName, QString originalName) {
+    MITK_INFO << "[INFO] Creating visualisation mesh";
     bool success = false;
     QString path = dir + "/" + visName + ".surfmesh.vtk";
     QFileInfo fi(path);
     if (!fi.exists()) {
+        MITK_INFO << "[INFO] Visualisation mesh does not exist. Creating...";
         QString originalPath = dir + "/" + originalName;
         if (!QFile::exists(originalPath)) {
-            MITK_WARN << "File" << orginalPath.toStdString() << "does not exist!";
-            return;
+            MITK_WARN << "File" << originalPath.toStdString() << "does not exist!";
+            return false;
         }
 
         std::unique_ptr<CemrgFourChamberCmd> fourch = std::make_unique<CemrgFourChamberCmd>();
         QStringList arguments;
-        arguments << "-msh=" + originalPath;
+        arguments << "-msh=" + originalName;
         arguments << "-surf=" + visName;
         arguments << "-ofmt=vtk_polydata";
-        QString path = success = fourch->DockerMeshtoolGeneric(dir, "extract", "surface", arguments, visName);
+        QString path = fourch->DockerMeshtoolGeneric(dir, "extract", "surface", arguments, visName);
 
         success = (QFile::exists(path));
     } else {
+        MITK_INFO << "[INFO] Visualisation mesh already exists!";
         success = true;
     }
 
@@ -223,6 +231,7 @@ bool FourChamberGuidePointsView::CreateVisualisationMesh(QString dir, QString vi
 }
 
 void FourChamberGuidePointsView::iniPreSurf() {
+    MITK_INFO << "[INFO] Initialising pre-surface visualisation";
     SetSubdirs();
     bool laVisSuccess = CreateVisualisationMesh(surfaces_uvc_la, QString("la/la_vis"), QString("la/la.vtk"));
     bool raVisSuccess = CreateVisualisationMesh(surfaces_uvc_ra, QString("ra/ra_vis"), QString("ra/ra.vtk"));
@@ -250,7 +259,9 @@ void FourChamberGuidePointsView::Visualiser(double opacity){
     double max_scalar = 4; // RA
     double min_scalar = 3; // LA
 
-    SphereSourceVisualiser(pickedPointsHandler->GetLineSeeds(), "0.4,0.1,0.0", 0.1);
+    renderer->RemoveAllViewProps();
+
+    SphereSourceVisualiser(pickedPointsHandler->GetLineSeeds(), "0.4,0.1,0.0", 0.025);
 
     //Create a mapper and actor for surface
     vtkSmartPointer<vtkPolyDataMapper> surfMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -272,7 +283,33 @@ void FourChamberGuidePointsView::Visualiser(double opacity){
     renderer->AddActor(surfActor);
 }
 
+// void FourChamberGuidePointsView::LoadMeshes(int stateChange) {
+//     std::cout << "LoadMeshes: State: " << stateChange << std::endl;
+//     MITK_INFO << "[INFO] Loading meshes";
+//     if (!pluginLoaded) return;
+    
+//     renderer->RemoveAllViewProps();
+    
+//     if (m_Controls.radio_load_la->isChecked()) {
+//         MITK_INFO << "[INFO] Loading LA: " << path_to_la.toStdString(); 
+//         mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(path_to_la.toStdString());
+//         if (shell.IsNotNull()) {
+//             surface = shell;
+//             Visualiser(alpha); // Adjust opacity as needed
+//         }
+//     }
+
+//     if (m_Controls.radio_load_ra->isChecked()) {
+//         MITK_INFO << "[INFO] Loading RA: " << path_to_ra.toStdString();
+//         mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(path_to_ra.toStdString());
+//         if (shell.IsNotNull()) {
+//             surface = shell;
+//             Visualiser(alpha); // Adjust opacity as needed
+//         }
+//     }
+// }
 void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyData> pointSources, QString colour, double scaleFactor){
+    MITK_INFO << "[INFO] Sphere source visualiser"; 
     // e.g colour = "0.4,0.1,0.0" - values for r,g, and b separated by commas.
     double r, g, b;
     bool okr, okg, okb;
@@ -346,6 +383,16 @@ void FourChamberGuidePointsView::KeyCallBackFunc(vtkObject*, long unsigned int, 
     self = reinterpret_cast<FourChamberGuidePointsView*>(ClientData);
     std::string key = self->interactor->GetKeySym();
 
+    if (!self->m_Controls.radio_load_la->isChecked() && !self->m_Controls.radio_load_ra->isChecked()) {
+        QMessageBox::information(NULL, "Info", "Please load a mesh first!");
+        return;
+    }
+
+    if (self->m_Controls.radio_load_la->isChecked() && self->m_Controls.radio_load_ra->isChecked()) { 
+        QMessageBox::information(NULL, "Info", "Please load only one mesh at a time!");
+        return;
+    }
+
     if (key == "space") {
         //Ask the labels
         self->UserSelectPvLabel();
@@ -411,18 +458,47 @@ void FourChamberGuidePointsView::RightAtriumReactToToggle() {
     }
 }
 
-void FourChamberGuidePointsView::CheckBoxShowAll(int checkedState) {
-    std::cout << "Show all atria: " << checkedState << std::endl;
-    QMessageBox::information(NULL, "Info", "Showing both atria");
+void FourChamberGuidePointsView::ChangeAlpha(int alphaChange) {
+    alpha = alphaChange / 100.0;
 }
 
-void FourChamberGuidePointsView::ChangeAlpha(int alpha) {
-    double opacity = alpha / 100.0;
-    std::cout << "Opacity: " << opacity << std::endl;
+void FourChamberGuidePointsView::ConfirmAlpha() {
+    // LoadMeshes(2);
+    Visualiser(alpha);
 }
 
 void FourChamberGuidePointsView::Save() {
     QMessageBox::information(NULL, "Info", "Saving points to files");
+    QStringList saveTypes = {"vtx", "coord"};
+    QStringList laPoints = {"la.lvapex.vtx", "la.rvsept_pt.vtx"}; // LA points
+    QStringList raPoints = {"ra.lvapex.vtx", "ra.rvsept_pt.vtx", "raa_apex.txt"}; // RA points
+
+    std::string la_path = surfaces_uvc_la.toStdString() + "/la/la.vtk";
+    mitk::UnstructuredGrid::Pointer grid = mitk::IOUtil::Load<mitk::UnstructuredGrid>(la_path);
+    if (grid.IsNull()) {
+        MITK_WARN << "LA Grid is null!";
+        return;
+    }
+    pickedPointsHandler->UpdateVtkIdFromUnstructuredGrid(grid, laPoints);
+
+    std::string ra_path = surfaces_uvc_ra.toStdString() + "/ra/ra.vtk";
+    grid = mitk::IOUtil::Load<mitk::UnstructuredGrid>(ra_path);
+    if (grid.IsNull()) {
+        MITK_WARN << "RA Grid is null!";
+        return;
+    }
+    pickedPointsHandler->UpdateVtkIdFromUnstructuredGrid(grid, raPoints);
+
+    QStringList points = laPoints + raPoints;
+
+    // Save points
+    for (auto& point : points) {
+        QString savetype = pickedPointsHandler->GetPointData(point).pointName.contains("vtx") ? "vtx" : "coord";
+        pickedPointsHandler->SaveToFile(APEX_SEPTUM(point), (QStringList(point)), savetype);
+    }
+    
+    QMessageBox::information(NULL, "Info", "Points saved, please close this window.");
+    m_Controls.button_save->setEnabled(false);
 }
 
 void FourChamberGuidePointsView::UserSelectPvLabel(){

@@ -84,6 +84,10 @@ public:
     void AddPointFromSurface(mitk::Surface::Pointer surface, int pickedSeedId, int label);
     void AddPointFromUnstructuredGrid(mitk::UnstructuredGrid::Pointer grid, int pickedSeedId, int label);
 
+    // both functions go through the set pointDatas and update the vtkId based on the coordinates
+    void UpdateVtkIdFromSurface(mitk::Surface::Pointer surface, QStringList names);
+    void UpdateVtkIdFromUnstructuredGrid(mitk::UnstructuredGrid::Pointer grid, QStringList names);
+
     int CleanupLastPoint();
     int UnsetLastPoint(); // returns las label
     void Clear();
@@ -113,7 +117,6 @@ private:
     vtkSmartPointer<vtkPolyData> lineSeeds;
     std::vector<PointLabelData> pointsData; // Consolidated data for points
 
-    // QStringList saveFiles;
 };
 
 #endif // CemrgMeshPointSelector_h
