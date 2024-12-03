@@ -221,7 +221,7 @@ bool FourChamberGuidePointsView::CreateVisualisationMesh(QString dir, QString vi
         arguments << "-ofmt=vtk_polydata";
         QString path = fourch->DockerMeshtoolGeneric(dir, "extract", "surface", arguments, visName);
 
-        success = (QFile::exists(path));
+        success = (QFile::exists(fi.absoluteFilePath()));
     } else {
         MITK_INFO << "[INFO] Visualisation mesh already exists!";
         success = true;
@@ -283,31 +283,6 @@ void FourChamberGuidePointsView::Visualiser(double opacity){
     renderer->AddActor(surfActor);
 }
 
-// void FourChamberGuidePointsView::LoadMeshes(int stateChange) {
-//     std::cout << "LoadMeshes: State: " << stateChange << std::endl;
-//     MITK_INFO << "[INFO] Loading meshes";
-//     if (!pluginLoaded) return;
-    
-//     renderer->RemoveAllViewProps();
-    
-//     if (m_Controls.radio_load_la->isChecked()) {
-//         MITK_INFO << "[INFO] Loading LA: " << path_to_la.toStdString(); 
-//         mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(path_to_la.toStdString());
-//         if (shell.IsNotNull()) {
-//             surface = shell;
-//             Visualiser(alpha); // Adjust opacity as needed
-//         }
-//     }
-
-//     if (m_Controls.radio_load_ra->isChecked()) {
-//         MITK_INFO << "[INFO] Loading RA: " << path_to_ra.toStdString();
-//         mitk::Surface::Pointer shell = mitk::IOUtil::Load<mitk::Surface>(path_to_ra.toStdString());
-//         if (shell.IsNotNull()) {
-//             surface = shell;
-//             Visualiser(alpha); // Adjust opacity as needed
-//         }
-//     }
-// }
 void FourChamberGuidePointsView::SphereSourceVisualiser(vtkSmartPointer<vtkPolyData> pointSources, QString colour, double scaleFactor){
     MITK_INFO << "[INFO] Sphere source visualiser"; 
     // e.g colour = "0.4,0.1,0.0" - values for r,g, and b separated by commas.
